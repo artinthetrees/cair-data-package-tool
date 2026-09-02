@@ -1,0 +1,17 @@
+healdata-utils @ git+https://github.com/norc-heal/healdata-utils
+numpy==1.26.4
+#numpy
+#git+https://github.com/norc-heal/healdata-utils@a94f2f799bf80f83d8e378444d0e96cd61d65b1a
+#git+https://github.com/norc-heal/healdata-utils@dda6458872466ce58573fbafe15100c3ceca3ae9
+PyQt5==5.15.9
+pyinstaller==5.8.0
+pipe==2.0
+qt_jsonschema_form==1.0.0
+pyqtschema==0.2.0
+pydantic==1.10.8
+jsonschema2md==0.9.0
+jaraco.text==4.0.0
+ImageHash==4.3.2
+visions==0.8.1
+
+

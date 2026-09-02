@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cair-data-package-tool"
+version = "0.0.1"
+description = "Desktop tool that provides a user-friendly interface to operationalize data packaging compliant with CAIR data packaging specifications."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2.3",
+    "numpy",
+    "PyQt5",
+    "qtpy",
+    "pyqtschema",
+    "healdata-utils>=0.6.0",
+    "imagehash",
+    "jsonschema2md",
+    "pyinstaller"
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter",
+    "black",
+    "ipykernel>=6.29.5",
+    "ruff>=0.11.5"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

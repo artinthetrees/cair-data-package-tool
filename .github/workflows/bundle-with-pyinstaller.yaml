@@ -1,0 +1,124 @@
+name: Bundle EXE
+
+on:
+  push:
+    tags:
+      - "*"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  TAG_BRANCH: tag-${{ github.ref_name }}-${{ github.sha }} # branch where the version-specific code is. See note below when this var is called
+jobs:
+  tag_version:
+    name: Create version identifiers
+    runs-on: "ubuntu-latest"
+    # NOTE: slugified_version_name can now be used in other jobs (referenced via needs.tag_version.outputs.slugified_version_name)
+    outputs:
+      slug_version: ${{ steps.save.outputs.slug_version }}
+      # NOTE: ${GITHUB_REF_NAME//./-} is bash syntax for referencing the default environment $GITHUB_REF and replacing dots with dashes (in the form //<tobereplaced>/<replacewith>)
+      # NOTE: this is equivalent to ${{ github.ref_name }}
+      # NOTE: for comparison, double brackets like ${{ matrix.name }} is for referencing github workflow variables (and is not bash syntax)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      # add the slugified (ie replace periods with dashes) to the version name to the saved output variables file
+      - name: Save slugified version tag
+        id: save
+        run: |
+          slug_version="${GITHUB_REF_NAME//./-}"
+          echo "slug_version=${slug_version}" >> $GITHUB_OUTPUT
+      # add git tag version to app script
+      - id: title_in_version
+        name: Add version number to app title
+        run: |
+          git config user.name ${{ github.triggering_actor }}
+          git config user.email ${{ github.triggering_actor }}@users.noreply.github.com
+
+          git checkout -b ${{ env.TAG_BRANCH }}
+
+          # version="${GITHUB_REF_NAME}"
+          # title_with_version="${APP_TITLE} ${version}"
+          # echo $title_with_version
+          # # replace the window title
+          # sed -i -e "s/self.setWindowTitle(.*)/self.setWindowTitle(\"${title_with_version}\")/g" dsc_pkg_tool.py
+
+          # git add dsc_pkg_tool.py
+          # git commit -m "Automated update of app title to ${version}"
+          git commit --allow-empty -m "pushing new tag branch"
+          git push -u origin ${{ env.TAG_BRANCH }}
+
+  release:
+    name: Create a release from a tag
+    runs-on: "ubuntu-latest"
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Download artifacts (the zipped pyinstaller exe for each os)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: data-pkg-tool-*.zip
+          merge-multiple: true
+      - name: Release with bundles
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+  bundle:
+    name: Bundle exe for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    needs:
+      - release
+      - tag_version
+    strategy:
+      matrix:
+        include:
+          - os: windows-2022
+            name: windows
+          # - os: macos-latest
+          #   name: mac
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.TAG_BRANCH }}
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.13"
+      # - name: Install Qt
+      #   uses: jurplel/install-qt-action@v4
+      #   with:
+      #     setup-python: false
+      #   if: ${{ matrix.name == 'mac' }}
+      - name: Install dependencies
+        env:
+          GH_PAT_READ_REPOS: ${{ secrets.GH_PAT_READ_REPOS }}
+        run: |
+          git config --global url."https://${{ github.actor }}:${{ secrets.GH_PAT_READ_REPOS }}@github".insteadOf https://github
+          python -m pip install --upgrade pip
+          pip install .
+      # - name: Bundle EXE for mac
+      #   run: |
+      #     pyinstaller --icon=heal-icon.ico --add-data="heal-icon.ico:." --add-data="readme.yaml:." --collect-all pipe --hidden-import pipe --hidden-import pyreadstat._readstat_writer --hidden-import pyreadstat.worker --paths=. --debug=all --onefile dsc_pkg_tool.py
+      #   if: ${{ matrix.name == 'mac' }}
+      - name: Bundle EXE for windows
+        run: |
+          pyinstaller --icon=heal-icon.ico --add-data="heal-icon.ico;." --hidden-import pyreadstat._readstat_writer --hidden-import pyreadstat.worker --paths=. --debug=all --onefile call_tool_calculations.py
+        if: ${{matrix.name == 'windows' }}
+      - name: Zip exe (for windows) and no ext (for ubuntu/mac)
+        run: |
+          python -m zipfile -c cair-data-pkg-tool-${{ matrix.name }}-${{ needs.tag_version.outputs.slug_version }}.zip dist/call_tool_heal.exe
+      #   python -m zipfile -c dsc-pkg-tool-${{ matrix.name }}-${{ needs.tag_version.outputs.slug_version }}.zip dist/dsc_pkg_tool.exe dist/dsc_pkg_tool
+      - name: Release with bundles
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            *data-pkg-tool-*-${{ matrix.name }}*.zip
