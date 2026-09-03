@@ -72,7 +72,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                             if valueList:
                                 print(valueList)
                                 self.schema = dsc_pkg_utils.dynamic_add_enums_to_schema_property(propertyToUpdate=prop,schema=self.schema,enumList=valueList)
-            
+
+        print(self.schema["customConditionalHide"])
+
         self.schemaVersion = self.trackerDict["schemaVersion"] 
     
         self.trackerTitle = self.trackerDict["trackerTitle"] 
@@ -345,14 +347,14 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         self.form.widget.state[self.trackerIdNumberLabel] = newIdNumber
 
     def toggle_widgets(self, keyText, desiredToggleState, deleteIfHidden=True):
-        print("troubleshoot toggle_widgets...")
-        print("keyText: ",keyText)
-        print([x for x in self.schema["properties"]])
-        print([list(map(str.strip, x.split(','))) for x in self.priorityContentList])
+        #print("troubleshoot toggle_widgets...")
+        #print("keyText: ",keyText)
+        #print([x for x in self.schema["properties"]])
+        #print([list(map(str.strip, x.split(','))) for x in self.priorityContentList])
         #indices = [i for i, x in enumerate(self.priorityContentList) if keyText in x.split(", ")]
         indices = [i for i, x in enumerate(self.priorityContentList) if keyText in list(map(str.strip, x.split(',')))]
-        print("indices: ",indices)
-        print("desiredToggleState: ",desiredToggleState)
+        #print("indices: ",indices)
+        #print("desiredToggleState: ",desiredToggleState)
 
         for i in indices:
             labelW = self.formLabelWidgetList[i]
@@ -483,6 +485,30 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         def subParseCustomConditionalHide(self,unit,ifOrElse,userMessageBox):
             actionVar = ifOrElse + "Action"
+            messageTextVar = ifOrElse + "MessageText"
+            messageTextTypeVar = ifOrElse + "MessageTextType"
+
+            print("unit: ",unit)
+
+            if (messageTextVar in unit) and (unit.get(messageTextVar)):
+                messageText = unit.get(messageTextVar)
+                print("messageText: ",messageText)
+                if userMessageBox:
+                    if (messageTextTypeVar in unit) and (unit.get(messageTextTypeVar)):
+                        messageTextType = unit.get(messageTextTypeVar)
+                        print("messageTextType: ",messageTextType)
+                        if messageTextType == "notify":
+                            saveFormat = '<span style="color:blue;">{}</span>'
+                        elif messageTextType == "warn":
+                            saveFormat = '<span style="color:red;">{}</span>'
+                        elif messageTextType == "proceed":
+                            saveFormat = '<span style="color:green;">{}</span>'
+                    userMessageBox.append(saveFormat.format(messageText))
+                    # set text color back to default after appending 
+                    saveFormat = '<span style="color:black;">{}</span>'
+                else:
+                    print(messageText)
+
 
             if not unit[actionVar]: 
                 return 
