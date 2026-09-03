@@ -506,6 +506,8 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                         saveFormat = '<span style="color:black;">{}</span>'
 
                     userMessageBox.append(saveFormat.format(messageText))
+                    # TODO: after appending/printing message, scroll to end of user message box so 
+                    # user attention is drawn by writing of the new message
                     
                 else:
                     print(messageText)
@@ -520,7 +522,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 impactedPropKeyTextList = None
 
             if isinstance(unit[actionVar],str):
-                # TODO: catch if actionVar is not hide or show
                 if unit[actionVar] not in availableActions:
                     print("You have provided a value of ",
                           unit[actionVar],
