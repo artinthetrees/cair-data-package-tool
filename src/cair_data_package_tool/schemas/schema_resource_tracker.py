@@ -421,7 +421,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "tabular data"
+            "impactedPropKeyText": "tabular data",
+            "ifMessageText": "<br>You have indicated your resource is a tabular data resource. Please ensure that you add a data dictionary for this tabular data resource in the Associated Data Dictionary field in the form below. A HEAL formatted data dictionary is highly preferred. If you don't already have a HEAL formatted data dictionary, you can easily create one directly from your tabular data file by visiting the Data Dictionary tab of the DSC Packaging Desktop application. You can leave this form open, visit the Data Dictionary tab to create and save your HEAL formatted data dictionary, and then return to this form to add the data dictionary you created.",
+            "ifMessageTextType": "notify",
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
