@@ -73,8 +73,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                                 print(valueList)
                                 self.schema = dsc_pkg_utils.dynamic_add_enums_to_schema_property(propertyToUpdate=prop,schema=self.schema,enumList=valueList)
 
-        print(self.schema["customConditionalHide"])
-
         self.schemaVersion = self.trackerDict["schemaVersion"] 
     
         self.trackerTitle = self.trackerDict["trackerTitle"] 
@@ -363,13 +361,13 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             fieldW = self.formWidgetList[i]
             fieldWName = self.formWidgetNameList[i]
 
-            print("label widget: ")
-            print(labelW)
-            print(labelWType)
-            print(labelWText)
-            print("field widget: ")
-            print(fieldW)
-            print(fieldWName)
+            #print("label widget: ")
+            #print(labelW)
+            #print(labelWType)
+            #print(labelWText)
+            #print("field widget: ")
+            #print(fieldW)
+            #print(fieldWName)
 
             if desiredToggleState == "show":
                 labelW.show()
