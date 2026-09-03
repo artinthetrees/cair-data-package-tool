@@ -433,7 +433,11 @@ schema = {
             "propValueRelation": "endsWith",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "data"
+            "impactedPropKeyText": "data",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -441,7 +445,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "metadata"
+            "impactedPropKeyText": "metadata",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -449,7 +457,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "result"
+            "impactedPropKeyText": "result",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -457,7 +469,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "publication"
+            "impactedPropKeyText": "publication",
+            "ifMessageText": "<br>You have indicated your resource is a publication resource. Please ensure that you add a results tracker for this publication resource in the Associated Results Tracker field in the form below. A results tracker is a HEAL formatted standard data package metadata file to track all results in a publication, along with the data and other supporting files that underly each result. If you don't already have a HEAL formatted results tracker, you can easily create one by visiting the Results Tracker tab of the DSC Data Packaging Desktop Tool. You can leave this form open, visit the Results Tracker tab to create and save your HEAL formatted results tracker, and then return to this form to add the results tracker you created.",
+            "ifMessageTextType": "notify",
+            "elseMessageText": None,
+            "elseMessageTextType": None                            
         },
         {
             "propToCheck":"category",
@@ -465,7 +481,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": "hide",
             "elseAction": "show",
-            "impactedPropKeyText": "not publication"
+            "impactedPropKeyText": "not publication",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -477,10 +497,18 @@ schema = {
                 "propValueRelation": "equal",
                 "ifAction": "hide",
                 "elseAction": "show",
-                "impactedPropKeyText": "not results-tracker"
+                "impactedPropKeyText": "not results-tracker",
+                "ifMessageText": "<br>You have indicated your resource is a HEAL formatted Results Tracker. The Associated Files/Dependencies field in this form has been hidden from view because this field cannot be used to add file dependencies for a Results Tracker file. If your Result Tracker is correctly formatted, and you have provided file dependencies for each result listed in the results tracker, file dependencies will be pulled in directly from the Results Tracker.",
+                "ifMessageTextType": "notify",
+                "elseMessageText": None,
+                "elseMessageTextType": None
             },
             "elseAction": None,
-            "impactedPropKeyText": "not results-tracker"
+            "impactedPropKeyText": "not results-tracker",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -492,10 +520,18 @@ schema = {
                 "propValueRelation": "equal",
                 "ifAction": "show",
                 "elseAction": "hide",
-                "impactedPropKeyText": "subMetadataOther"
+                "impactedPropKeyText": "subMetadataOther",
+                "ifMessageText": None,
+                "ifMessageTextType": None,
+                "elseMessageText": None,
+                "elseMessageTextType": None
             },
             "elseAction": None,
-            "impactedPropKeyText": "subMetadataOther"
+            "impactedPropKeyText": "subMetadataOther",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"category",
@@ -503,7 +539,11 @@ schema = {
             "propValueRelation": "equal",
             "ifAction": None,
             "elseAction": "hide",
-            "impactedPropKeyText": ["subMetadataOther"]
+            "impactedPropKeyText": ["subMetadataOther"],
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         },
         {
             "propToCheck":"access",
@@ -511,7 +551,52 @@ schema = {
             "propValueRelation": "valueInProp",
             "ifAction": "show",
             "elseAction": "hide",
-            "impactedPropKeyText": "temporary private"
+            "impactedPropKeyText": "temporary private",
+            "ifMessageText": "<br>You have indicated your resource will be temporarily held as private. Please 1) use the Access field to indicate the access level at which you'll set this resource once the temporary private access setting expires (either open-access access, or managed-access), and 2) use the Access Date field to indicate the date at which the temporary private access level is expected to expire (You will not be held to this date - Estimated dates are appreciated).",
+            "ifMessageTextType": "notify",
+            "elseMessageText": None,
+            "elseMessageTextType": None
+        },
+        {
+            "propToCheck":"path",
+            "propValue":None,
+            "propValueRelation": "notNone",
+            "ifAction": {
+                            "propToCheck":"category",
+                            "propValue":"metadata",
+                            "propValueRelation": "equal",
+                            "ifAction": {
+                                "propToCheck":"categorySubMetadata",
+                                "propValue":"heal-formatted-results-tracker",
+                                "propValueRelation": "equal",
+                                "ifAction": None,
+                                "elseAction": None,
+                                "impactedPropKeyText": None,
+                                "ifMessageText": None,
+                                "ifMessageTextType": None,
+                                "ifApplyFunctionName": "extractFromResultTracker",
+                                "ifApplyFunctionInputParams": {
+                                    "path": {
+                                        "value": None,
+                                        "valueFromProp": "path"
+                                    }
+                                },
+                                "elseMessageText": None,
+                                "elseMessageTextType": None
+                            },
+                            "elseAction": None,
+                            "impactedPropKeyText": None,
+                            "ifMessageText": None,
+                            "ifMessageTextType": None,
+                            "elseMessageText": None,
+                            "elseMessageTextType": None
+                        },
+            "elseAction": "hide",
+            "impactedPropKeyText": "temporary private",
+            "ifMessageText": None,
+            "ifMessageTextType": None,
+            "elseMessageText": None,
+            "elseMessageTextType": None
         }
     ],
     "customAddBasedOnDefaults": None,
