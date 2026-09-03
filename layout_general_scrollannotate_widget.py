@@ -482,6 +482,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         ##########################################################
 
         def subParseCustomConditionalHide(self,unit,ifOrElse,userMessageBox):
+            availableActions = ["show","hide"]
             actionVar = ifOrElse + "Action"
             messageTextVar = ifOrElse + "MessageText"
             messageTextTypeVar = ifOrElse + "MessageTextType"
@@ -501,9 +502,11 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                             saveFormat = '<span style="color:red;">{}</span>'
                         elif messageTextType == "proceed":
                             saveFormat = '<span style="color:green;">{}</span>'
+                    else:
+                        saveFormat = '<span style="color:black;">{}</span>'
+
                     userMessageBox.append(saveFormat.format(messageText))
-                    # set text color back to default after appending 
-                    saveFormat = '<span style="color:black;">{}</span>'
+                    
                 else:
                     print(messageText)
 
@@ -518,6 +521,17 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
             if isinstance(unit[actionVar],str):
                 # TODO: catch if actionVar is not hide or show
+                if unit[actionVar] not in availableActions:
+                    print("You have provided a value of ",
+                          unit[actionVar],
+                          " for ",
+                          actionVar,
+                          " . However ",
+                          actionVar,
+                          " can only be one of the following values for now: ", ", ".join(availableActions)
+                          )
+                    return
+
                 if not impactedPropKeyTextList:
                     self.toggle_widgets(keyText = unit["impactedPropKeyText"], desiredToggleState = unit[actionVar])
                 else:
@@ -531,7 +545,8 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             availablePropValueRelations = ["equal","startsWith","endsWith","valueInProp"]
             if unit["propValueRelation"] not in availablePropValueRelations:
                 print("propValueRelation can only be one of the following values for now: ", ", ".join(availablePropValueRelations))
-
+                return
+            
             if unit["propValueRelation"] == "equal":
                 if self.form.widget.state[unit["propToCheck"]] == unit["propValue"]:
                     subParseCustomConditionalHide(self,unit=unit,ifOrElse="if",userMessageBox=userMessageBox) 
