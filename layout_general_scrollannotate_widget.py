@@ -12,9 +12,10 @@ from pyqtschema.builder import WidgetBuilder
 
 import cair_data_package_tool.dsc_pkg_utils as dsc_pkg_utils
 import cair_data_package_tool.back_door_edit as back_door_edit
+import cair_data_package_tool.widget_utils as widget_utils
 
 from layout_csvviewwidget import CSVViewWindow
-
+from layout_fileurladdwidget import ListboxWidget
 
 class ScrollAnnotateWindow(QtWidgets.QMainWindow):
     def __init__(
@@ -91,7 +92,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         self.trackerFirstId = self.trackerDict["trackerFirstId"] 
         self.trackerDefaultName = self.trackerDict["trackerDefaultName"] 
         self.trackerIdPrefix = self.trackerDict["trackerIdPrefix"] 
-        
+
+        # Initialize a dictionary to keep track of any dynamically created items due to customBulkAddFilePaths custom schema prop
+        self.dynamic_customBulkAddFilePaths = {}
         self.initUI()
 
     def initUI(self):
@@ -142,9 +145,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         
         # create save button
         self.buttonSave = QtWidgets.QPushButton(text="Save " + self.trackerType,parent=self)
-        # self.buttonSave.clicked.connect(self.save_annotation)
-        #self.buttonSave.clicked.connect(functools.partial(back_door_edit.save_annotation,self))
-        #.on_changed.connect(lambda saveStatus: self.check_name_unique("check"))
         self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
         
         self.buttonSave.setSizePolicy(
@@ -169,6 +169,49 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         self.userMessageBox.setText(self.messageText)
 
         self.labelUserMessageBox = QtWidgets.QLabel(text = "User Status Message Box:", parent=self)
+
+        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        if self.schema.get("customBulkAddFilePaths"):
+            print("customBulkAddFilePaths")
+            for i in self.schema.get("customBulkAddFilePaths"):
+                prop = i["prop"]
+                button_text = i["buttonText"]
+                label_text = i["labelText"]
+
+                # Create the button, label, and drag&drop file list box dynamically
+                btn = QtWidgets.QPushButton(text=button_text,parent=self)
+                lbl = QtWidgets.QLabel(text=label_text,parent=self)
+                add_files_box = ListboxWidget(parent=self)
+                add_files_box_model = add_files_box.model()
+                add_files_items = []
+                add_files_items_programmatic_update = False
+
+                # Store the items in dynamic_customBulkAddFilePaths dictionary
+                self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
+                self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
+                self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
+                
+                # Connect and pass BOTH the property name and the button, label, and add_files_box instances themselves
+                btn.clicked.connect(
+                    lambda checked, property=prop, button=btn, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(self=self,property=property,button=button,label=label,add_files_box=add_files_box)
+                )
+                lbl.setSizePolicy(
+                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+                )
+                lbl.setWordWrap(True)
+                add_files_box_model.rowsInserted.connect(
+
+                )
+                
+                self.layout.addWidget(btn)
+                       
+                # create drag and drop window for multiple file dependencies addition
+                self.lstbox_view2 = ListboxWidget(self)
+                self.lwModel2 = self.lstbox_view2.model()
+                self.items2 = []
+                self.programmaticListUpdate2 = False
+                self.lwModel2.rowsInserted.connect(self.get_items_list2)
+                self.lwModel2.rowsRemoved.connect(self.get_items_list2)
        
         ################################## Apply some initializing and maintenance functions
 
