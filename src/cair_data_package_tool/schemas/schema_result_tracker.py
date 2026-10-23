@@ -122,6 +122,13 @@ schema = {
             "priority": "results tracker, auto"
         }
     },
+    "customBulkAddFilePaths": [
+        {
+            "prop": "associatedFileDependsOn",
+            "buttonText": "Add multiple result dependencies",
+            "labelText": "To add multiple file dependencies for your result, <b>drag and drop file paths right here</b>. If your result has one or just a few dependencies, you can drag and drop them here or browse to each dependency (one dependency at a time) using the Associated Files/Dependencies field in the form below."
+        }
+    ],
     "customDynamicEnum": [
         {
             "prop": "experimentNameBelongsTo",
