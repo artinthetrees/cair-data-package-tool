@@ -209,8 +209,19 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             print("customBulkAddFilePaths")
             for i in self.schema.get("customBulkAddFilePaths"):
                 prop = i["prop"]
-                button_text = i["buttonText"]
-                label_text = i["labelText"]
+                prop_title = self.schema["properties"][prop]["title"]
+                print(prop_title)
+                #button_text = i["buttonText"]
+                #label_text = i["labelText"]
+                button_text = "<b>Bulk add files for:</b> " + prop_title 
+                label_text = \
+                    "To bulk add files for the " + \
+                        prop_title + \
+                            " field <b>drag and drop file paths right here</b>. If you intend to add one or just a few files for " + \
+                                prop_title + \
+                                    ", you can drag and drop them here or browse to each file (one file at a time) using the " + \
+                                        prop_title + \
+                                            " field in the form below."
 
                 # Create the button, label, and drag&drop file list box dynamically
                 btn = QtWidgets.QPushButton(text=button_text,parent=self)
