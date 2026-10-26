@@ -4,13 +4,39 @@ def update_add_files_list_from_form_field(property,self):
 
     property = property
     print("property in update items from form field fx: ",property) 
+    print("form widget state: ",self.form.widget.state[property])
+    print("add_files_items from dict: ",self.dynamic_customBulkAddFilePaths[property]["add_files_items"])
+
+    # if user just added a new spot to add a file (no new file added yet), return
+    current_form_widget_state = self.form.widget.state[property]
+    current_form_widget_state_remove_empty = [i for i in current_form_widget_state if i]
+    if current_form_widget_state != current_form_widget_state_remove_empty:
+        return
+
+    # if user added a file or deleted a file via the form field, 
+    # 1) update the add_files_items in dict
+    # 2) update the items listed in the add_files_box
+    
+    # 1)
+    self.dynamic_customBulkAddFilePaths[property]["add_files_items"] = current_form_widget_state
+
+    # 2) 
+    # set to programmatic update
+    self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = True
+    
+    self.dynamic_customBulkAddFilePaths[property]["add_files_box"].clear()
+    self.dynamic_customBulkAddFilePaths[property]["add_files_box"].addItems(current_form_widget_state)
+
+
+
     
 
 def update_add_files_list_from_box(property,self):
       
     property = property
     print("property in update items from box fx: ",property) 
-             
+
+    # if files in box are being updated programmatically, return         
     if self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"]:
         self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = False
         return
