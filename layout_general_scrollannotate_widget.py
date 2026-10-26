@@ -257,10 +257,10 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 # when user adds or deletes files via the add files drop box, update the items list
                 add_files_box_model.rowsInserted.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list(property,self)
+                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
                 )
                 add_files_box_model.rowsRemoved.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list(property,self)
+                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
                 )
                 
                 self.vbox.addWidget(btn)
@@ -269,6 +269,12 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 lbl.hide()
                 add_files_box.hide()
+
+                # add in update of files in add_files_box if user add/deletes using the property's form field widget
+                # instead of the drag and drop box
+                self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
+                    lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
+                )
         ############
 
         self.vbox.addWidget(self.form)
@@ -543,7 +549,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                     else:
                         parseCustomConditionalValueUnit(unit=unit["ifValue"])            
 
-
         if self.schema.get("customConditionalValue"):
             for i in self.schema["customConditionalValue"]:
                 parseCustomConditionalValueUnit(unit=i)
@@ -609,7 +614,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             else:
                 parseCustomConditionalHide(self,unit=unit[actionVar],userMessageBox=userMessageBox)
                 return 
-
 
         def parseCustomConditionalHide(self,unit,userMessageBox):
             availablePropValueRelations = ["equal","startsWith","endsWith","valueInProp"]

@@ -1,9 +1,15 @@
 import os
 
-def update_add_files_list(property,self):
+def update_add_files_list_from_form_field(property,self):
+
+    property = property
+    print("property in update items from form field fx: ",property) 
+    
+
+def update_add_files_list_from_box(property,self):
       
     property = property
-    print("property in update items fx: ",property) 
+    print("property in update items from box fx: ",property) 
              
     if self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"]:
         self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = False
