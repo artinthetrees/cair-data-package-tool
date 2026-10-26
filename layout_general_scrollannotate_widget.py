@@ -170,49 +170,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         self.labelUserMessageBox = QtWidgets.QLabel(text = "User Status Message Box:", parent=self)
 
-        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
-        if self.schema.get("customBulkAddFilePaths"):
-            print("customBulkAddFilePaths")
-            for i in self.schema.get("customBulkAddFilePaths"):
-                prop = i["prop"]
-                button_text = i["buttonText"]
-                label_text = i["labelText"]
-
-                # Create the button, label, and drag&drop file list box dynamically
-                btn = QtWidgets.QPushButton(text=button_text,parent=self)
-                lbl = QtWidgets.QLabel(text=label_text,parent=self)
-                add_files_box = ListboxWidget(parent=self)
-                add_files_box_model = add_files_box.model()
-                add_files_items = []
-                add_files_items_programmatic_update = False
-
-                # Store the items in dynamic_customBulkAddFilePaths dictionary
-                self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
-                self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
-                
-                # Connect and pass BOTH the property name and the button, label, and add_files_box instances themselves
-                btn.clicked.connect(
-                    lambda checked, property=prop, button=btn, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(self=self,property=property,button=button,label=label,add_files_box=add_files_box)
-                )
-                lbl.setSizePolicy(
-                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
-                )
-                lbl.setWordWrap(True)
-                add_files_box_model.rowsInserted.connect(
-
-                )
-                
-                self.layout.addWidget(btn)
-                       
-                # create drag and drop window for multiple file dependencies addition
-                self.lstbox_view2 = ListboxWidget(self)
-                self.lwModel2 = self.lstbox_view2.model()
-                self.items2 = []
-                self.programmaticListUpdate2 = False
-                self.lwModel2.rowsInserted.connect(self.get_items_list2)
-                self.lwModel2.rowsRemoved.connect(self.get_items_list2)
-       
         ################################## Apply some initializing and maintenance functions
 
         # initialize tool tip for each form field based on the description text for the corresponding schema property
@@ -245,6 +202,59 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         #self.vbox.addWidget(self.buttonClearForm)
         self.vbox.addWidget(self.labelUserMessageBox)
         self.vbox.addWidget(self.userMessageBox)
+
+        ############
+        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        if self.schema.get("customBulkAddFilePaths"):
+            print("customBulkAddFilePaths")
+            for i in self.schema.get("customBulkAddFilePaths"):
+                prop = i["prop"]
+                button_text = i["buttonText"]
+                label_text = i["labelText"]
+
+                # Create the button, label, and drag&drop file list box dynamically
+                btn = QtWidgets.QPushButton(text=button_text,parent=self)
+                lbl = QtWidgets.QLabel(text=label_text,parent=self)
+
+                # create drag and drop window for multiple file dependencies addition
+                add_files_box = ListboxWidget(parent=self)
+                add_files_box_model = add_files_box.model()
+                add_files_items = []
+                add_files_items_programmatic_update = False
+
+                # Store the items in dynamic_customBulkAddFilePaths dictionary
+                self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
+                self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
+                
+                self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
+                self.dynamic_customBulkAddFilePaths[prop]["add_files_box_model"] = add_files_box_model
+                self.dynamic_customBulkAddFilePaths[prop]["add_files_items"] = add_files_items
+                self.dynamic_customBulkAddFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
+
+                # when button is clicked hide/show the bulk add file box and box label
+                btn.clicked.connect(
+                    lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(self=self,property=property,label=label,add_files_box=add_files_box)
+                )
+                
+                # set sizing and word wrap for add file box label
+                lbl.setSizePolicy(
+                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+                )
+                lbl.setWordWrap(True)
+
+                # when user adds or deletes files via the add files drop box, update the items list
+                add_files_box_model.rowsInserted.connect(
+                    lambda checked, property=prop: widget_utils.update_add_files_list(self=self,property=property)
+                )
+                add_files_box_model.rowsInserted.connect(
+                    lambda checked, property=prop: widget_utils.update_add_files_list(self=self,property=property)
+                )
+                
+                self.vbox.addWidget(btn)
+                self.vbox.addWidget(lbl)
+                self.vbox.addWidget(add_files_box)
+        ############
+
         self.vbox.addWidget(self.form)
         
         self.widget.setLayout(self.vbox)
