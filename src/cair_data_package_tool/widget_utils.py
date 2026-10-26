@@ -1,66 +1,65 @@
 import os
 
-def get_items_list2(self):
-    
-    if self.programmaticListUpdate2:
-        self.programmaticListUpdate2 = False
+def update_add_files_list(self,property):   
+         
+    if self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"]:
+        self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = False
         return
 
-    lw = self.lstbox_view2
-    
+    add_files_box = self.dynamic_customBulkAddFilePaths[property]["add_files_box"]
+
+    # store old items list
     oldLength = None
-    if self.items2:
-        oldLength = len(self.items2)
-        oldItems = self.items2
+    if self.dynamic_customBulkAddFilePaths[property]["add_files_items"]:
+        oldLength = len(self.dynamic_customBulkAddFilePaths[property]["add_files_items"])
+        oldItems = self.dynamic_customBulkAddFilePaths[property]["add_files_items"]
 
-    self.items2 = [lw.item(x).text() for x in range(lw.count())]
-    print(self.items2)
+        print(oldItems)
+        print(oldLength)
 
-    refactorItems = []
-    for i in self.items2:
+    # update items list with what files/folders are actually in the box now
+    updated_items_list = [add_files_box.item(x).text() for x in range(add_files_box.count())]
+
+    # if there are any directories in the box now, get the files in the directory and add those to items list, replacing the name of the directory in the items list 
+    refactored_items_list = []
+    for i in updated_items_list:
         print(i)
         if os.path.isdir(i):
-            #self.programmaticListUpdate = True
             myFiles = [os.path.join(i,f) for f in os.listdir(i) if os.path.isfile(os.path.join(i,f))]
             print(myFiles)
-            refactorItems.extend(myFiles)
+            refactored_items_list.extend(myFiles)
         else:
-            refactorItems.append(i)
+            refactored_items_list.append(i)
 
-    if self.items2 != refactorItems:
-        self.programmaticListUpdate2 = True
+    if updated_items_list != refactored_items_list:
+        self.dynamic_customBulkAddFilePaths["property"]["add_files_items_programmatic_update"] = True
 
-        self.items2 = refactorItems
-        self.lstbox_view2.clear()
-        self.lstbox_view2.addItems(self.items2)
+        self.dynamic_customBulkAddFilePaths["property"]["add_files_items"] = refactored_items_list
+        self.dynamic_customBulkAddFilePaths["property"]["add_files_box"].clear()
+        self.dynamic_customBulkAddFilePaths["property"]["add_files_box"].addItems(refactored_items_list)
 
-    newLength = len(self.items2)
-    print(self.items2)  
-    #print(type(self.items)) 
-    print(len(self.items2))
+    newLength = len(refactored_items_list)
+    print(refactored_items_list)  
+    print(len(refactored_items_list))
 
-    if self.items2:
-        #updatePath = self.items2[0]
-        updateAssocFileMultiDepend = self.items2
+    if refactored_items_list:
+        updateAssocFileMultiDepend = refactored_items_list
     else:
-        #updatePath = ""
         updateAssocFileMultiDepend = []
 
-    self.form.widget.state = {
-        #"path": updatePath,
-        "associatedFileDependsOn": updateAssocFileMultiDepend
-    } 
-
-    
+    self.form.widget.state[property] = updateAssocFileMultiDepend
+    # self.form.widget.state = {
+    #     "associatedFileDependsOn": updateAssocFileMultiDepend
+    # } 
 
     if oldLength:
         if ((oldLength > 0) and (newLength == 0)):
             print("hide")
             
-            self.labelAddMultiDepend.hide()
-            self.lstbox_view2.hide()
+            self.dynamic_customBulkAddFilePaths[property]["lbl"].hide()
+            self.dynamic_customBulkAddFilePaths[property]["add_files_box"].hide()
             
-def toggle_add_file_box_visibility(self,property,button,label,add_files_box):
+def toggle_add_file_box_visibility(self,property,label,add_files_box):
 
     if ((label.isHidden()) and (add_files_box.isHidden())):
         label.show()
