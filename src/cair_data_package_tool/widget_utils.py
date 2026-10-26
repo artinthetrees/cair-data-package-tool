@@ -2,13 +2,9 @@ import os
 
 def update_add_files_list(property,self):
       
-    print(self.dynamic_customBulkAddFilePaths)
-    print(property)
     property = property
     print("property in update items fx: ",property) 
-    print(self.dynamic_customBulkAddFilePaths[property])
-    print(self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"])
-         
+             
     if self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"]:
         self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = False
         return
@@ -44,24 +40,17 @@ def update_add_files_list(property,self):
     if updated_items_list != refactored_items_list:
         self.dynamic_customBulkAddFilePaths[property]["add_files_items_programmatic_update"] = True
 
-        #self.dynamic_customBulkAddFilePaths[property]["add_files_items"] = refactored_items_list
         self.dynamic_customBulkAddFilePaths[property]["add_files_box"].clear()
         self.dynamic_customBulkAddFilePaths[property]["add_files_box"].addItems(refactored_items_list)
 
     newLength = len(refactored_items_list)
-    print(refactored_items_list)  
-    print(len(refactored_items_list))
-
-    if refactored_items_list:
-        updateAssocFileMultiDepend = refactored_items_list
-    else:
-        updateAssocFileMultiDepend = []
-
-    self.form.widget.state[property] = updateAssocFileMultiDepend
-    # self.form.widget.state = {
-    #     "associatedFileDependsOn": updateAssocFileMultiDepend
-    # } 
-    print("form state: ", self.form.widget.state[property])
+    
+    print("refactored_items_list: ",refactored_items_list)
+    print("form state before: ", self.form.widget.state[property])
+    self.form.widget.state = {
+         property: refactored_items_list
+    }
+    print("form state after: ", self.form.widget.state[property])
     
     if oldLength:
         if ((oldLength > 0) and (newLength == 0)):
