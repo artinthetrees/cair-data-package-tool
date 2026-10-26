@@ -223,6 +223,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 add_files_items_programmatic_update = False
 
                 # Store the items in dynamic_customBulkAddFilePaths dictionary
+                self.dynamic_customBulkAddFilePaths.setdefault(prop, {})
                 self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
                 self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
                 
