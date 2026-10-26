@@ -254,6 +254,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 self.vbox.addWidget(btn)
                 self.vbox.addWidget(lbl)
                 self.vbox.addWidget(add_files_box)
+
+                lbl.hide()
+                add_files_box.hide()
         ############
 
         self.vbox.addWidget(self.form)
