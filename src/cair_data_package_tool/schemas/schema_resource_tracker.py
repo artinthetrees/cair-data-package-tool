@@ -366,6 +366,11 @@ schema = {
         }
         
     },
+    "customBulkAddFilePaths": [
+        {
+            "prop": "associatedFileDependsOn"
+        }
+    ],
     "customDynamicEnum": [
         {
             "prop": "experimentNameBelongsTo",
