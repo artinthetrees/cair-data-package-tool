@@ -213,7 +213,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 print(prop_title)
                 #button_text = i["buttonText"]
                 #label_text = i["labelText"]
-                button_text = "<b>Bulk add files for:</b> " + prop_title 
+                button_text = "Bulk add files for: " + prop_title 
                 label_text = \
                     "To bulk add files for the " + \
                         prop_title + \
@@ -243,9 +243,10 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 self.dynamic_customBulkAddFilePaths[prop]["add_files_items"] = add_files_items
                 self.dynamic_customBulkAddFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
 
+                print("property: ",prop)
                 # when button is clicked hide/show the bulk add file box and box label
                 btn.clicked.connect(
-                    lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(self=self,property=property,label=label,add_files_box=add_files_box)
+                    lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(property,label,add_files_box,self)
                 )
                 
                 # set sizing and word wrap for add file box label
@@ -256,10 +257,10 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 # when user adds or deletes files via the add files drop box, update the items list
                 add_files_box_model.rowsInserted.connect(
-                    lambda checked, property=prop: widget_utils.update_add_files_list(self=self,property=property)
+                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list(property,self)
                 )
-                add_files_box_model.rowsInserted.connect(
-                    lambda checked, property=prop: widget_utils.update_add_files_list(self=self,property=property)
+                add_files_box_model.rowsRemoved.connect(
+                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list(property,self)
                 )
                 
                 self.vbox.addWidget(btn)
