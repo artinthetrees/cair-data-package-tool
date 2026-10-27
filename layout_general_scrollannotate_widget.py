@@ -225,6 +225,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 # Create the button, label, and drag&drop file list box dynamically
                 btn = QtWidgets.QPushButton(text=button_text,parent=self)
+                btn.setToolTip("Click this button to open a drag and drop box to bulk add files for the " + prop_title + " field.") # add tooltip to button bc by default the label and add_files_box will be hidden so this will give the user some guidance as to what 
                 lbl = QtWidgets.QLabel(text=label_text,parent=self)
 
                 # create drag and drop window for multiple file dependencies addition
