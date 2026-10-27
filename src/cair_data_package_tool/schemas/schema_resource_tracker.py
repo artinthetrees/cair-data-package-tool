@@ -371,6 +371,11 @@ schema = {
             "prop": "associatedFileDependsOn"
         }
     ],
+    "customBulkAddMultiLikeFilePaths": [
+        {
+            "prop": "associatedFileDependsOn"
+        }
+    ],
     "customDynamicEnum": [
         {
             "prop": "experimentNameBelongsTo",
