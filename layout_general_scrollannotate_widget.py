@@ -95,6 +95,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         # Initialize a dictionary to keep track of any dynamically created items due to customBulkAddFilePaths custom schema prop
         self.dynamic_customBulkAddFilePaths = {}
+        self.dynamic_customBulkAddMultiLikeFilePaths = {}
         self.initUI()
 
     def initUI(self):
