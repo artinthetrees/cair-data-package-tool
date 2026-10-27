@@ -1,5 +1,8 @@
 import os
 from pathlib import Path
+import re
+
+import cair_data_package_tool.dsc_pkg_utils as dsc_pkg_utils
 
 def update_add_files_list_from_form_field(property,self):
 
@@ -98,3 +101,196 @@ def toggle_add_file_box_visibility(property,label,add_files_box,self):
     else:
         label.hide()
         add_files_box.hide()
+
+def get_items_list(self):
+    #item = QListWidgetItem(self.lstbox_view.currentItem())
+    #print(item.text())
+    if self.programmaticListUpdate:
+        self.programmaticListUpdate = False
+        return
+
+    lw = self.lstbox_view
+    
+    oldLength = None
+    if self.items:
+        oldLength = len(self.items)
+        oldItems = self.items
+
+    self.items = [os.path.normpath(lw.item(x).text()) for x in range(lw.count())]
+    print(self.items)
+
+    refactorItems = []
+    for i in self.items:
+        print(i)
+        if os.path.isdir(i):
+            #self.programmaticListUpdate = True
+            myFiles = [os.path.normpath(os.path.join(i,f)) for f in os.listdir(i) if os.path.isfile(os.path.join(i,f))]
+            print(myFiles)
+            refactorItems.extend(myFiles)
+        else:
+            refactorItems.append(i)
+
+    if self.items != refactorItems:
+        self.programmaticListUpdate = True
+
+        self.items = refactorItems
+        self.lstbox_view.clear()
+        self.lstbox_view.addItems(self.items)
+
+    newLength = len(self.items)
+    print(self.items)  
+    #print(type(self.items)) 
+    print(len(self.items))
+
+    if self.items:
+        updatePath = self.items[0]
+        updateAssocFileMultiLike = self.items
+    else:
+        updatePath = ""
+        updateAssocFileMultiLike = []
+
+    self.form.widget.state = {
+        "path": updatePath,
+        "associatedFileMultiLikeFiles": updateAssocFileMultiLike
+    } 
+
+    
+    if len(self.items) > 1:
+        print("show")
+        indices = [i for i, x in enumerate(self.priorityContentList) if ("multiple like resource" in x) and ("permanent hide" not in x)]
+        print(indices)
+        for i in indices:
+            labelW = self.formLabelWidgetList[i]
+            print(labelW)
+            labelWType = self.formLabelWidgetTypeList[i]
+            print(labelWType)
+            labelWText = self.formLabelWidgetTextList[i]
+            print(labelWText)
+            fieldW = self.formWidgetList[i]
+            print(fieldW)
+            fieldWName = self.formWidgetNameList[i]
+            print(fieldWName)
+
+            labelW.show()
+            fieldW.show()
+
+        self.labelApplyNameConvention.show()
+        self.buttonApplyNameConvention.show()
+
+    if oldLength:
+        if ((oldLength > 1) and (newLength <= 1)):
+            print("hide")
+            indices = [i for i, x in enumerate(self.priorityContentList) if "multiple like resource" in x]
+            print(indices)
+            for i in indices:
+                labelW = self.formLabelWidgetList[i]
+                print(labelW)
+                labelWType = self.formLabelWidgetTypeList[i]
+                print(labelWType)
+                labelWText = self.formLabelWidgetTextList[i]
+                print(labelWText)
+                fieldW = self.formWidgetList[i]
+                print(fieldW)
+                fieldWName = self.formWidgetNameList[i]
+                print(fieldWName)
+
+                labelW.hide()
+                fieldW.hide()
+                # should also probably delete the contents of these folders?
+
+            self.labelApplyNameConvention.hide()
+            self.buttonApplyNameConvention.hide()
+
+def apply_name_convention(self):
+    print("applying name convention")
+    # have to do this after add_tooltip because these items are defined in that function - may want to change that at some point
+    # get the name convention widget 
+    self.nameConventionWidgetIdx = self.formWidgetNameList.index("descriptionFileNameConvention")
+    self.nameConventionWidget = self.formWidgetList[self.nameConventionWidgetIdx] 
+    print("my state: ", self.nameConventionWidget.state)
+    self.nameConvention = self.nameConventionWidget.state
+
+    try:
+        nameConventionExplanatoryList = re.findall('{(.+?)}', self.nameConvention)
+        print(nameConventionExplanatoryList)
+    except AttributeError:
+        # {} not found in the original string
+        #nameConventionExplanatoryList = '' # apply your error handling
+        print('you have either not specified a naming convention or have not specified it correctly. please do not include the file extension (e.g. csv, docx, xlsx, etc.) in the naming convention, and specify as: e.g. subject_{subject ID number}_day_{date in YYYY/MM/DD}')
+        messageText = "<br>You have either not specified a naming convention or have not specified it correctly. please do not include the file extension (e.g. csv, docx, xlsx, etc.) in the naming convention, and specify as: e.g. subject_{subject ID number}_day_{date in YYYY/MM/DD}"
+        errorFormat = '<span style="color:red;">{}</span>'
+        self.userMessageBox.append(errorFormat.format(messageText))
+        return
+
+    if not nameConventionExplanatoryList:
+        messageText = "<br>You have either not specified a naming convention or have not specified it correctly. please do not include the file extension (e.g. csv, docx, xlsx, etc.) in the naming convention, and specify as: e.g. subject_{subject ID number}_day_{date in YYYY/MM/DD}"
+        errorFormat = '<span style="color:red;">{}</span>'
+        self.userMessageBox.append(errorFormat.format(messageText))
+        return
+
+    # check if specified name convention includes directory structure (if so should provide full path, including file extension when specifying file name convention)
+    s = rf"{self.nameConvention}"
+    
+    s1 = s.split('/')
+    s2 = s.split('\\')
+    print("forward slash split: ", s1, "back slash split: ", s2)
+
+    if ((len(s1) > 1) or (len(s2) > 1)):
+        keepFullPath = True
+        s = os.path.normpath(s)
+        messageText = "<br> Because the file name convention you entered contains either forward or back slashes, the file name convention you entered will be applied to the full path of each file in the set of multiple 'like' resources you added to the file drop box. When directory structure is used as part of the file naming convention, please specify the name convention including the full path and the file extension in the file name convention string you provide in the form."  
+        self.userMessageBox.append(messageText)
+        self.scrollScrollArea(topOrBottom = "top")
+    else:
+        messageText = "<br> Because the file name convention you entered does not contain either forward or back slashes, the file name convention you entered will be applied to the stem of the full path of each file in the set of multiple 'like' resources you added to the file drop box. When directory structure is NOT used as part of the file naming convention, please specify the name convention including just the filename excluding the file extension in the file name convention string you provide in the form."  
+        self.userMessageBox.append(messageText)
+        self.scrollScrollArea(topOrBottom = "top")
+        keepFullPath = False
+
+    if not keepFullPath:
+        # get just file stems from full path, this also removes file extensions
+        if self.items:
+            self.fileStemList = [Path(p).stem for p in self.items]
+        else:
+            self.fileStemList = [Path(self.form.widget.state["path"]).stem]
+    else:
+        if self.items:
+            self.fileStemList = [p for p in self.items]
+        else:
+            self.fileStemList = [self.form.widget.state["path"]]
+        
+
+    self.itemsDescriptionList = []
+    self.itemsDescriptionMessagesOut = []
+
+    self.itemsDescriptionList, itemsDescriptionMessagesOut = dsc_pkg_utils.get_multi_like_file_descriptions(self.nameConvention, self.fileStemList)
+
+    if self.itemsDescriptionList:
+        print("self.itemsDescriptionList: ",self.itemsDescriptionList)
+        
+        if all(self.itemsDescriptionList):
+            self.form.widget.state = {
+                "descriptionFile": self.itemsDescriptionList[0]
+            } 
+
+            applyConvention = "successful. Please see the Resource File Description field in the form below to see the file description assigned to the first file in your set of multiple 'like' resource files"
+            textColor = "green"
+        else: 
+            applyConvention = "unsuccessful. Examine any errors the attempt produced (red text below), ensure that you are following the required conventions for specifying your naming convention, and come back and try again"
+            textColor = "red"
+        
+        messageText = "<br>Your attempt to apply a name convention for your set of 'like' resource files was " + applyConvention + "."  
+        textColorFormat = '<span style="color:' + textColor + ';">{}</span>'
+        self.userMessageBox.append(textColorFormat.format(messageText))
+        self.scrollScrollArea(topOrBottom = "top")
+
+    if itemsDescriptionMessagesOut:
+        print(itemsDescriptionMessagesOut)
+        
+        itemsDescriptionMessagesOut = [''.join(list(m)) for m in itemsDescriptionMessagesOut]
+        print(itemsDescriptionMessagesOut)
+
+        messageText = "<br> Your attempt to apply a name convention for your set of 'like' resource files produced the following errors: <br>" + '\n'.join(itemsDescriptionMessagesOut)  
+        errorFormat = '<span style="color:red;">{}</span>'
+        self.userMessageBox.append(errorFormat.format(messageText))
+        self.scrollScrollArea(topOrBottom = "top")
