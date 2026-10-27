@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 def update_add_files_list_from_form_field(property,self):
 
@@ -27,10 +28,6 @@ def update_add_files_list_from_form_field(property,self):
     self.dynamic_customBulkAddFilePaths[property]["add_files_box"].clear()
     self.dynamic_customBulkAddFilePaths[property]["add_files_box"].addItems(current_form_widget_state)
 
-
-
-    
-
 def update_add_files_list_from_box(property,self):
       
     property = property
@@ -58,13 +55,13 @@ def update_add_files_list_from_box(property,self):
     # if there are any directories in the box now, get the files in the directory and add those to items list, replacing the name of the directory in the items list 
     refactored_items_list = []
     for i in updated_items_list:
-        print(i)
-        if os.path.isdir(i):
-            myFiles = [os.path.join(i,f) for f in os.listdir(i) if os.path.isfile(os.path.join(i,f))]
-            print(myFiles)
+        myPath = Path(i).resolve()
+        if myPath.is_dir():
+            # only unpack one level - i.e. if the dir has subdirs, the files in subdirs will not be unpacked via this method
+            myFiles = [str(f) for f in myPath.iterdir() if f.is_file()]
             refactored_items_list.extend(myFiles)
         else:
-            refactored_items_list.append(i)
+            refactored_items_list.append(str(myPath))
 
     # update dictionary items list whether refactor to account for directories was necessary or not
     self.dynamic_customBulkAddFilePaths[property]["add_files_items"] = refactored_items_list
