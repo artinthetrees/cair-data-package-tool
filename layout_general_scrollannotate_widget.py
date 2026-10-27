@@ -275,6 +275,10 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
                     lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
                 )
+                # install event filter on the corresponding form field widget - event filter watches for if/when 
+                # the form field widget changes from shown to hidden or vice versa and applies this same action to the
+                # corresponding bulk add files widgets (button, label, add_files_box)
+                self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
         ############
 
         self.vbox.addWidget(self.form)
@@ -315,6 +319,28 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             self.scroll.verticalScrollBar().setValue(
                 self.scroll.verticalScrollBar().minimum()
             )
+
+    # Event filter to auto hide/show bulk add files widgets if corresponding form field is hidden/shown by various conditional logic - Catch widget show/hide events 
+    def eventFilter(self, watched, event):
+        if self.dynamic_customBulkAddFilePaths:
+            for k,v in self.dynamic_customBulkAddFilePaths.items():
+                property = k
+                associated_form_field_widget = self.formWidgetList[self.formWidgetNameList.index(property)]
+                btn = v["btn"]
+                lbl = v["lbl"]
+                add_files_box = v["add_files_box"]
+
+                if watched == associated_form_field_widget:
+                    if event.type() == QtCore.QEvent.Hide:
+                        btn.hide()
+                        lbl.hide()
+                        add_files_box.hide()
+                    elif event.type() == QtCore.QEvent.Show:
+                        btn.hide()
+                        lbl.hide()
+                        add_files_box.hide()
+                    
+                return super().eventFilter(watched, event)
 
     def add_tooltip(self):
         
