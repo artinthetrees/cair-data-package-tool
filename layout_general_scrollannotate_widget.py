@@ -266,7 +266,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 self.vbox.addWidget(btn)
                 self.vbox.addWidget(lbl)
                 self.vbox.addWidget(add_files_box)
-
+                
                 lbl.hide()
                 add_files_box.hide()
 
@@ -322,6 +322,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
     # Event filter to auto hide/show bulk add files widgets if corresponding form field is hidden/shown by various conditional logic - Catch widget show/hide events 
     def eventFilter(self, watched, event):
+        
         if self.dynamic_customBulkAddFilePaths:
             for k,v in self.dynamic_customBulkAddFilePaths.items():
                 property = k
@@ -332,13 +333,15 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 if watched == associated_form_field_widget:
                     if event.type() == QtCore.QEvent.Hide:
+                        print("hiding bulk add files fx widgets for: ",property)
                         btn.hide()
                         lbl.hide()
                         add_files_box.hide()
                     elif event.type() == QtCore.QEvent.Show:
-                        btn.hide()
-                        lbl.hide()
-                        add_files_box.hide()
+                        print("showing bulk add files fx widgets for: ",property)
+                        btn.show()
+                        #lbl.show()
+                        #add_files_box.show()
                     
                 return super().eventFilter(watched, event)
 
