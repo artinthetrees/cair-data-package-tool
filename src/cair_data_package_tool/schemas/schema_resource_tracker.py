@@ -373,7 +373,7 @@ schema = {
     ],
     "customBulkAddMultiLikeFilePaths": [
         {
-            "prop": "associatedFileDependsOn"
+            "prop": "path"
         }
     ],
     "customDynamicEnum": [
