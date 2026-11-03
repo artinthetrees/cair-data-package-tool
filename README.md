@@ -35,6 +35,7 @@ The CAIR Data Package Framework and Tool has its roots in the HEAL Data Package 
 - create and activate virtual environment
 - install editable version of tool and its dependencies into virtual environment
     ``` pip install -e . ```
+- `python call_tool_heal.py`
 
 
 
