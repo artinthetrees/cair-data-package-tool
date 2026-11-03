@@ -209,79 +209,162 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         if self.schema.get("customBulkAddFilePaths"):
             print("customBulkAddFilePaths")
             for i in self.schema.get("customBulkAddFilePaths"):
-                prop = i["prop"]
-                prop_title = self.schema["properties"][prop]["title"]
-                print(prop_title)
-                #button_text = i["buttonText"]
-                #label_text = i["labelText"]
-                button_text = "Bulk add files for: " + prop_title 
-                label_text = \
-                    "To bulk add files for the " + \
-                        prop_title + \
-                            " field <b>drag and drop file paths right here</b>. If you intend to add one or just a few files for " + \
-                                prop_title + \
-                                    ", you can drag and drop them here or browse to each file (one file at a time) using the " + \
-                                        prop_title + \
-                                            " field in the form below."
+                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddFilePaths",self=self)
+                # prop = i["prop"]
+                # prop_title = self.schema["properties"][prop]["title"]
+                # print(prop_title)
+                # if i["buttonText"]:
+                #     button_text = i["buttonText"]
+                # else:
+                #     button_text = "Bulk add files for: " + prop_title 
+                # if i["labelText"]:
+                #     label_text = i["labelText"]
+                # else:
+                #     label_text = \
+                #         "To bulk add files for the " + \
+                #             prop_title + \
+                #                 " field <b>drag and drop file paths right here</b>. If you intend to add one or just a few files for " + \
+                #                     prop_title + \
+                #                         ", you can drag and drop them here or browse to each file (one file at a time) using the " + \
+                #                             prop_title + \
+                #                                 " field in the form below."
 
-                # Create the button, label, and drag&drop file list box dynamically
-                btn = QtWidgets.QPushButton(text=button_text,parent=self)
-                btn.setToolTip("Click this button to open a drag and drop box to bulk add files for the " + prop_title + " field.") # add tooltip to button bc by default the label and add_files_box will be hidden so this will give the user some guidance as to what 
-                lbl = QtWidgets.QLabel(text=label_text,parent=self)
+                # # Create the button, label, and drag&drop file list box dynamically
+                # btn = QtWidgets.QPushButton(text=button_text,parent=self)
+                # btn.setToolTip("Click this button to open a drag and drop box to bulk add files for the " + prop_title + " field.") # add tooltip to button bc by default the label and add_files_box will be hidden so this will give the user some guidance as to what 
+                # lbl = QtWidgets.QLabel(text=label_text,parent=self)
 
-                # create drag and drop window for multiple file dependencies addition
-                add_files_box = ListboxWidget(parent=self)
-                add_files_box_model = add_files_box.model()
-                add_files_items = []
-                add_files_items_programmatic_update = False
+                # # create drag and drop window for multiple file dependencies addition
+                # add_files_box = ListboxWidget(parent=self)
+                # add_files_box_model = add_files_box.model()
+                # add_files_items = []
+                # add_files_items_programmatic_update = False
 
-                # Store the items in dynamic_customBulkAddFilePaths dictionary
-                self.dynamic_customBulkAddFilePaths.setdefault(prop, {})
-                self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
-                self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
+                # # Store the items in dynamic_customBulkAddFilePaths dictionary
+                # self.dynamic_customBulkAddFilePaths.setdefault(prop, {})
+                # self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
+                # self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
                 
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_box_model"] = add_files_box_model
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_items"] = add_files_items
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
+                # self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
+                # self.dynamic_customBulkAddFilePaths[prop]["add_files_box_model"] = add_files_box_model
+                # self.dynamic_customBulkAddFilePaths[prop]["add_files_items"] = add_files_items
+                # self.dynamic_customBulkAddFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
 
-                print("property: ",prop)
-                # when button is clicked hide/show the bulk add file box and box label
-                btn.clicked.connect(
-                    lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(property,label,add_files_box,self)
-                )
+                # print("property: ",prop)
+                # # when button is clicked hide/show the bulk add file box and box label
+                # btn.clicked.connect(
+                #     lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(property,label,add_files_box,self)
+                # )
                 
-                # set sizing and word wrap for add file box label
-                lbl.setSizePolicy(
-                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
-                )
-                lbl.setWordWrap(True)
+                # # set sizing and word wrap for add file box label
+                # lbl.setSizePolicy(
+                #     QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+                # )
+                # lbl.setWordWrap(True)
 
-                # when user adds or deletes files via the add files drop box, update the items list
-                add_files_box_model.rowsInserted.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
-                )
-                add_files_box_model.rowsRemoved.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
-                )
+                # # when user adds or deletes files via the add files drop box, update the items list
+                # add_files_box_model.rowsInserted.connect(
+                #     lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
+                # )
+                # add_files_box_model.rowsRemoved.connect(
+                #     lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
+                # )
                 
-                self.vbox.addWidget(btn)
-                self.vbox.addWidget(lbl)
-                self.vbox.addWidget(add_files_box)
+                # self.vbox.addWidget(btn)
+                # self.vbox.addWidget(lbl)
+                # self.vbox.addWidget(add_files_box)
                 
-                lbl.hide()
-                add_files_box.hide()
+                # lbl.hide()
+                # add_files_box.hide()
 
-                # add in update of files in add_files_box if user add/deletes using the property's form field widget
-                # instead of the drag and drop box
-                self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
-                    lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
-                )
-                # install event filter on the corresponding form field widget - event filter watches for if/when 
-                # the form field widget changes from shown to hidden or vice versa and applies this same action to the
-                # corresponding bulk add files widgets (button, label, add_files_box)
-                self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
+                # # add in update of files in add_files_box if user add/deletes using the property's form field widget
+                # # instead of the drag and drop box
+                # self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
+                #     lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
+                # )
+                # # install event filter on the corresponding form field widget - event filter watches for if/when 
+                # # the form field widget changes from shown to hidden or vice versa and applies this same action to the
+                # # corresponding bulk add files widgets (button, label, add_files_box)
+                # self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
         ############
+        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        if self.schema.get("customBulkAddMultiLikeFilePaths"):
+            print("customBulkAddMultiLikeFilePaths")
+            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddMultiLikeFilePaths",self=self)
+                # prop = i["prop"]
+                # prop_title = self.schema["properties"][prop]["title"]
+                # print(prop_title)
+                # #button_text = i["buttonText"]
+                # #label_text = i["labelText"]
+                # button_text = "Add Multiple \'like\' file paths for: " + prop_title 
+                # label_text = \
+                #     "To add multiple \'like\' files for the " + \
+                #         prop_title + \
+                #             " field <b>drag and drop file paths right here</b>. If you intend to add one file for " + \
+                #                 prop_title + \
+                #                     ", use the " + \
+                #                         prop_title + \
+                #                             " field in the form below to browse directly to the single file path."
+
+                # # Create the button, label, and drag&drop file list box dynamically
+                # btn = QtWidgets.QPushButton(text=button_text,parent=self)
+                # btn.setToolTip("Click this button to open a drag and drop box to add multiple \'like\' files for the " + prop_title + " field.") # add tooltip to button bc by default the label and add_files_box will be hidden so this will give the user some guidance as to what 
+                # lbl = QtWidgets.QLabel(text=label_text,parent=self)
+
+                # # create drag and drop window for multiple file dependencies addition
+                # add_files_box = ListboxWidget(parent=self)
+                # add_files_box_model = add_files_box.model()
+                # add_files_items = []
+                # add_files_items_programmatic_update = False
+
+                # # Store the items in dynamic_customBulkAddFilePaths dictionary
+                # self.dynamic_customBulkAddMultiLikeFilePaths.setdefault(prop, {})
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["btn"] = btn
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["lbl"] = lbl
+                
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["add_files_box"] = add_files_box
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["add_files_box_model"] = add_files_box_model
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["add_files_items"] = add_files_items
+                # self.dynamic_customBulkAddMultiLikeFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
+
+                # print("property: ",prop)
+                # # when button is clicked hide/show the bulk add file box and box label
+                # btn.clicked.connect(
+                #     lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(property,label,add_files_box,self)
+                # )
+                
+                # # set sizing and word wrap for add file box label
+                # lbl.setSizePolicy(
+                #     QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
+                # )
+                # lbl.setWordWrap(True)
+
+                # # # when user adds or deletes files via the add files drop box, update the items list
+                # # add_files_box_model.rowsInserted.connect(
+                # #     lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
+                # # )
+                # # add_files_box_model.rowsRemoved.connect(
+                # #     lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
+                # # )
+                
+                # self.vbox.addWidget(btn)
+                # self.vbox.addWidget(lbl)
+                # self.vbox.addWidget(add_files_box)
+                
+                # lbl.hide()
+                # add_files_box.hide()
+
+                # # # add in update of files in add_files_box if user add/deletes using the property's form field widget
+                # # # instead of the drag and drop box
+                # # self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
+                # #     lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
+                # # )
+                # # # install event filter on the corresponding form field widget - event filter watches for if/when 
+                # # # the form field widget changes from shown to hidden or vice versa and applies this same action to the
+                # # # corresponding bulk add files widgets (button, label, add_files_box)
+                # # self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
+                ############
 
         self.vbox.addWidget(self.form)
         
