@@ -374,7 +374,9 @@ schema = {
     "customBulkAddMultiLikeFilePaths": [
         {
             "prop": "path",
-            "collectProp": "associatedFileMultiLikeFiles"
+            "collectProp": "associatedFileMultiLikeFiles",
+            "fileNameConventionProp": "descriptionFileNameConvention",
+            "fileNameDescriptionProp": "descriptionFile"
         }
     ],
     "customDynamicEnum": [
