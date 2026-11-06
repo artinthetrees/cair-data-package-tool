@@ -80,6 +80,9 @@ def multi_path_box(i,multi_path_box_type,self):
         save_dict[prop]["btn_applyNameConvention"] = btn_applyNameConvention
         save_dict[prop]["lbl_applyNameConvention"] = lbl_applyNameConvention
 
+        # check for changes to file name convention schema property field widget
+        self.formWidgetList[self.formWidgetNameList.index(i["fileNameConventionProp"])].on_changed.connect(conditional_highlight_apply_name_convention(property=prop,self=self))
+                
     save_dict[prop]["btn"] = btn
     save_dict[prop]["lbl"] = lbl
     
@@ -484,3 +487,21 @@ def apply_name_convention(property,self):
         errorFormat = '<span style="color:red;">{}</span>'
         self.userMessageBox.append(errorFormat.format(messageText))
         self.scrollScrollArea(topOrBottom = "top")
+
+def conditional_highlight_apply_name_convention(property,self):
+
+        print("applying name convention")
+        save_dict = self.dynamic_customBulkAddMultiLikeFilePaths
+        file_name_convention_property = save_dict[property]["file_name_convention_property"]
+        file_description_property = save_dict[property]["file_description_property"]
+
+        if self.form.widget.state["descriptionFileNameConvention"]:
+            self.buttonApplyNameConvention.setStyleSheet("background-color : rgba(0,125,0,50)")
+        else:
+            self.buttonApplyNameConvention.setStyleSheet("")
+            
+            self.form.widget.state = {
+                "descriptionFile": ""
+            }
+
+            self.itemsDescriptionList = []
