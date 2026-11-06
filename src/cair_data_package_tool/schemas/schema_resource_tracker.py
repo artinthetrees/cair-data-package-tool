@@ -376,7 +376,7 @@ schema = {
             "prop": "path",
             "collectProp": "associatedFileMultiLikeFiles",
             "fileNameConventionProp": "descriptionFileNameConvention",
-            "fileNameDescriptionProp": "descriptionFile"
+            "fileDescriptionProp": "descriptionFile"
         }
     ],
     "customDynamicEnum": [
