@@ -402,7 +402,7 @@ schema = {
     "customCheckFormChange": [
         "category",
         "access",
-        "descriptionFileNameConvention",
+        #"descriptionFileNameConvention",
         "categorySubMetadata",
         "path"
     ],
