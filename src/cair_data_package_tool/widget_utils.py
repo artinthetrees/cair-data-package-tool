@@ -75,13 +75,20 @@ def multi_path_box(i,multi_path_box_type,self):
 
         # create button to apply naming convention for multiple like resources
         btn_applyNameConvention = QtWidgets.QPushButton(text="Apply Name Convention",parent=self)
-        btn_applyNameConvention.clicked.connect(apply_name_convention)
+        btn_applyNameConvention.clicked.connect(
+            lambda checked, property=prop: apply_name_convention(property=property,self=self)
+            )
 
         save_dict[prop]["btn_applyNameConvention"] = btn_applyNameConvention
         save_dict[prop]["lbl_applyNameConvention"] = lbl_applyNameConvention
 
+        # initialize list for file description for each file in multi-like file set 
+        save_dict[prop]["add_files_items_descriptions"] = []
+        
         # check for changes to file name convention schema property field widget
-        self.formWidgetList[self.formWidgetNameList.index(i["fileNameConventionProp"])].on_changed.connect(conditional_highlight_apply_name_convention(property=prop,self=self))
+        self.formWidgetList[self.formWidgetNameList.index(i["fileNameConventionProp"])].on_changed.connect(
+            lambda state, property=prop: conditional_highlight_apply_name_convention(property,self=self)
+        )
                 
     save_dict[prop]["btn"] = btn
     save_dict[prop]["lbl"] = lbl
@@ -114,10 +121,17 @@ def multi_path_box(i,multi_path_box_type,self):
     self.vbox.addWidget(btn)
     self.vbox.addWidget(lbl)
     self.vbox.addWidget(add_files_box)
-    
+        
     lbl.hide()
     add_files_box.hide()
 
+    if multi_path_box_type == "customBulkAddMultiLikeFilePaths":
+        self.vbox.addWidget(btn_applyNameConvention)
+        self.vbox.addWidget(lbl_applyNameConvention)
+
+        btn_applyNameConvention.hide()
+        lbl_applyNameConvention.hide()
+    
     if multi_path_box_type == "customBulkAddFilePaths":
         # add in update of files in add_files_box if user add/deletes using the property's form field widget
         # instead of the drag and drop box
@@ -130,11 +144,11 @@ def multi_path_box(i,multi_path_box_type,self):
         self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
 
 def update_add_files_list_from_form_field(property,self):
-
+    print("update_add_files_list_from_form_field")
     property = property
-    print("property in update items from form field fx: ",property) 
-    print("form widget state: ",self.form.widget.state[property])
-    print("add_files_items from dict: ",self.dynamic_customBulkAddFilePaths[property]["add_files_items"])
+    print("property: ",property) 
+    #print("form widget state: ",self.form.widget.state[property])
+    #print("add_files_items from dict: ",self.dynamic_customBulkAddFilePaths[property]["add_files_items"])
 
     # if user just added a new spot to add a file (no new file added yet), return
     current_form_widget_state = self.form.widget.state[property]
@@ -158,8 +172,10 @@ def update_add_files_list_from_form_field(property,self):
 
 def update_add_files_list_from_box(property,multi_path_box_type,self):
      # multi_path_box_type is one of: customBulkAddFilePaths,customBulkAddMultiLikeFilePaths  
+    print("update_add_files_list_from_box")
     property = property
-    print("property in update items from box fx: ",property) 
+    print("property: ",property) 
+    print("multi_path_box_type: ",multi_path_box_type) 
 
     # Store the items in dynamic_customBulkAddFilePaths dictionary
     if multi_path_box_type == "customBulkAddFilePaths":
@@ -180,8 +196,8 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
         oldLength = len(save_dict[property]["add_files_items"])
         oldItems = save_dict[property]["add_files_items"]
 
-        print(oldItems)
-        print(oldLength)
+        #print(oldItems)
+        #print(oldLength)
 
     # update items list with what files/folders are actually in the box now
     updated_items_list = [add_files_box.item(x).text() for x in range(add_files_box.count())]
@@ -207,8 +223,11 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
         save_dict[property]["add_files_box"].addItems(refactored_items_list)
 
     newLength = len(refactored_items_list)
+
+    print("old length of file items: ",oldLength)
+    print("new length of file items: ",newLength)
     
-    print("refactored_items_list: ",refactored_items_list)
+    #print("refactored_items_list: ",refactored_items_list)
 
     if multi_path_box_type == "customBulkAddFilePaths":
         self.form.widget.state = {
@@ -230,21 +249,21 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
                 save_dict[property]["add_files_box"].hide()
 
     if multi_path_box_type == "customBulkAddMultiLikeFilePaths":
-        if newLength > 1:
-            print("show")
+        if newLength >= 1:
+            print("show apply name convention button")
             indices = [i for i, x in enumerate(self.priorityContentList) if ("multiple like resource" in x) and ("permanent hide" not in x)]
-            print(indices)
+            #print(indices)
             for i in indices:
                 labelW = self.formLabelWidgetList[i]
-                print(labelW)
+                #print(labelW)
                 labelWType = self.formLabelWidgetTypeList[i]
-                print(labelWType)
+                #print(labelWType)
                 labelWText = self.formLabelWidgetTextList[i]
-                print(labelWText)
+                #print(labelWText)
                 fieldW = self.formWidgetList[i]
-                print(fieldW)
+                #print(fieldW)
                 fieldWName = self.formWidgetNameList[i]
-                print(fieldWName)
+                #print(fieldWName)
 
                 labelW.show()
                 fieldW.show()
@@ -253,21 +272,21 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
             save_dict[property]["btn_applyNameConvention"].show()
 
         if oldLength:
-            if ((oldLength > 1) and (newLength <= 1)):
-                print("hide")
+            if ((oldLength >= 1) and (newLength < 1)):
+                print("hide apply name convention button")
                 indices = [i for i, x in enumerate(self.priorityContentList) if "multiple like resource" in x]
-                print(indices)
+                #print(indices)
                 for i in indices:
                     labelW = self.formLabelWidgetList[i]
-                    print(labelW)
+                    #print(labelW)
                     labelWType = self.formLabelWidgetTypeList[i]
-                    print(labelWType)
+                    #print(labelWType)
                     labelWText = self.formLabelWidgetTextList[i]
-                    print(labelWText)
+                    #print(labelWText)
                     fieldW = self.formWidgetList[i]
-                    print(fieldW)
+                    #print(fieldW)
                     fieldWName = self.formWidgetNameList[i]
-                    print(fieldWName)
+                    #print(fieldWName)
 
                     labelW.hide()
                     fieldW.hide()
@@ -278,7 +297,7 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
             
 def toggle_add_file_box_visibility(property,label,add_files_box,self):
     property = property
-    print("property in toggle fx: ",property)
+    #print("property in toggle fx: ",property)
 
     if ((label.isHidden()) and (add_files_box.isHidden())):
         label.show()
@@ -287,104 +306,104 @@ def toggle_add_file_box_visibility(property,label,add_files_box,self):
         label.hide()
         add_files_box.hide()
 
-def get_items_list(self):
-    #item = QListWidgetItem(self.lstbox_view.currentItem())
-    #print(item.text())
-    if self.programmaticListUpdate:
-        self.programmaticListUpdate = False
-        return
+# def get_items_list(self):
+#     #item = QListWidgetItem(self.lstbox_view.currentItem())
+#     #print(item.text())
+#     if self.programmaticListUpdate:
+#         self.programmaticListUpdate = False
+#         return
 
-    lw = self.lstbox_view
+#     lw = self.lstbox_view
     
-    oldLength = None
-    if self.items:
-        oldLength = len(self.items)
-        oldItems = self.items
+#     oldLength = None
+#     if self.items:
+#         oldLength = len(self.items)
+#         oldItems = self.items
 
-    self.items = [os.path.normpath(lw.item(x).text()) for x in range(lw.count())]
-    print(self.items)
+#     self.items = [os.path.normpath(lw.item(x).text()) for x in range(lw.count())]
+#     print(self.items)
 
-    refactorItems = []
-    for i in self.items:
-        print(i)
-        if os.path.isdir(i):
-            #self.programmaticListUpdate = True
-            myFiles = [os.path.normpath(os.path.join(i,f)) for f in os.listdir(i) if os.path.isfile(os.path.join(i,f))]
-            print(myFiles)
-            refactorItems.extend(myFiles)
-        else:
-            refactorItems.append(i)
+#     refactorItems = []
+#     for i in self.items:
+#         print(i)
+#         if os.path.isdir(i):
+#             #self.programmaticListUpdate = True
+#             myFiles = [os.path.normpath(os.path.join(i,f)) for f in os.listdir(i) if os.path.isfile(os.path.join(i,f))]
+#             print(myFiles)
+#             refactorItems.extend(myFiles)
+#         else:
+#             refactorItems.append(i)
 
-    if self.items != refactorItems:
-        self.programmaticListUpdate = True
+#     if self.items != refactorItems:
+#         self.programmaticListUpdate = True
 
-        self.items = refactorItems
-        self.lstbox_view.clear()
-        self.lstbox_view.addItems(self.items)
+#         self.items = refactorItems
+#         self.lstbox_view.clear()
+#         self.lstbox_view.addItems(self.items)
 
-    newLength = len(self.items)
-    print(self.items)  
-    #print(type(self.items)) 
-    print(len(self.items))
+#     newLength = len(self.items)
+#     print(self.items)  
+#     #print(type(self.items)) 
+#     print(len(self.items))
 
-    if self.items:
-        updatePath = self.items[0]
-        updateAssocFileMultiLike = self.items
-    else:
-        updatePath = ""
-        updateAssocFileMultiLike = []
+#     if self.items:
+#         updatePath = self.items[0]
+#         updateAssocFileMultiLike = self.items
+#     else:
+#         updatePath = ""
+#         updateAssocFileMultiLike = []
 
-    self.form.widget.state = {
-        "path": updatePath,
-        "associatedFileMultiLikeFiles": updateAssocFileMultiLike
-    } 
+#     self.form.widget.state = {
+#         "path": updatePath,
+#         "associatedFileMultiLikeFiles": updateAssocFileMultiLike
+#     } 
 
     
-    if len(self.items) > 1:
-        print("show")
-        indices = [i for i, x in enumerate(self.priorityContentList) if ("multiple like resource" in x) and ("permanent hide" not in x)]
-        print(indices)
-        for i in indices:
-            labelW = self.formLabelWidgetList[i]
-            print(labelW)
-            labelWType = self.formLabelWidgetTypeList[i]
-            print(labelWType)
-            labelWText = self.formLabelWidgetTextList[i]
-            print(labelWText)
-            fieldW = self.formWidgetList[i]
-            print(fieldW)
-            fieldWName = self.formWidgetNameList[i]
-            print(fieldWName)
+#     if len(self.items) > 1:
+#         print("show")
+#         indices = [i for i, x in enumerate(self.priorityContentList) if ("multiple like resource" in x) and ("permanent hide" not in x)]
+#         print(indices)
+#         for i in indices:
+#             labelW = self.formLabelWidgetList[i]
+#             print(labelW)
+#             labelWType = self.formLabelWidgetTypeList[i]
+#             print(labelWType)
+#             labelWText = self.formLabelWidgetTextList[i]
+#             print(labelWText)
+#             fieldW = self.formWidgetList[i]
+#             print(fieldW)
+#             fieldWName = self.formWidgetNameList[i]
+#             print(fieldWName)
 
-            labelW.show()
-            fieldW.show()
+#             labelW.show()
+#             fieldW.show()
 
-        self.labelApplyNameConvention.show()
-        self.buttonApplyNameConvention.show()
+#         self.labelApplyNameConvention.show()
+#         self.buttonApplyNameConvention.show()
 
-    if oldLength:
-        if ((oldLength > 1) and (newLength <= 1)):
-            print("hide")
-            indices = [i for i, x in enumerate(self.priorityContentList) if "multiple like resource" in x]
-            print(indices)
-            for i in indices:
-                labelW = self.formLabelWidgetList[i]
-                print(labelW)
-                labelWType = self.formLabelWidgetTypeList[i]
-                print(labelWType)
-                labelWText = self.formLabelWidgetTextList[i]
-                print(labelWText)
-                fieldW = self.formWidgetList[i]
-                print(fieldW)
-                fieldWName = self.formWidgetNameList[i]
-                print(fieldWName)
+#     if oldLength:
+#         if ((oldLength > 1) and (newLength <= 1)):
+#             print("hide")
+#             indices = [i for i, x in enumerate(self.priorityContentList) if "multiple like resource" in x]
+#             print(indices)
+#             for i in indices:
+#                 labelW = self.formLabelWidgetList[i]
+#                 print(labelW)
+#                 labelWType = self.formLabelWidgetTypeList[i]
+#                 print(labelWType)
+#                 labelWText = self.formLabelWidgetTextList[i]
+#                 print(labelWText)
+#                 fieldW = self.formWidgetList[i]
+#                 print(fieldW)
+#                 fieldWName = self.formWidgetNameList[i]
+#                 print(fieldWName)
 
-                labelW.hide()
-                fieldW.hide()
-                # should also probably delete the contents of these folders?
+#                 labelW.hide()
+#                 fieldW.hide()
+#                 # should also probably delete the contents of these folders?
 
-            self.labelApplyNameConvention.hide()
-            self.buttonApplyNameConvention.hide()
+#             self.labelApplyNameConvention.hide()
+#             self.buttonApplyNameConvention.hide()
 
 def apply_name_convention(property,self):
     print("applying name convention")
@@ -422,7 +441,7 @@ def apply_name_convention(property,self):
     
     s1 = s.split('/')
     s2 = s.split('\\')
-    print("forward slash split: ", s1, "back slash split: ", s2)
+    #print("forward slash split: ", s1, "back slash split: ", s2)
 
     if ((len(s1) > 1) or (len(s2) > 1)):
         keepFullPath = True
@@ -449,7 +468,6 @@ def apply_name_convention(property,self):
         else:
             fileStemList = [Path(self.form.widget.state[property])]
         
-
     itemsDescriptionList = []
     itemsDescriptionMessagesOut = []
 
@@ -478,10 +496,10 @@ def apply_name_convention(property,self):
         self.scrollScrollArea(topOrBottom = "top")
 
     if itemsDescriptionMessagesOut:
-        print(itemsDescriptionMessagesOut)
+        #print(itemsDescriptionMessagesOut)
         
         itemsDescriptionMessagesOut = [''.join(list(m)) for m in itemsDescriptionMessagesOut]
-        print(itemsDescriptionMessagesOut)
+        #print(itemsDescriptionMessagesOut)
 
         messageText = "<br> Your attempt to apply a name convention for your set of 'like' resource files produced the following errors: <br>" + '\n'.join(itemsDescriptionMessagesOut)  
         errorFormat = '<span style="color:red;">{}</span>'
@@ -495,13 +513,16 @@ def conditional_highlight_apply_name_convention(property,self):
         file_name_convention_property = save_dict[property]["file_name_convention_property"]
         file_description_property = save_dict[property]["file_description_property"]
 
-        if self.form.widget.state["descriptionFileNameConvention"]:
-            self.buttonApplyNameConvention.setStyleSheet("background-color : rgba(0,125,0,50)")
+        apply_file_name_convention_button = save_dict[property]["btn_applyNameConvention"]
+        apply_file_name_convention_label = save_dict[property]["lbl_applyNameConvention"]
+
+        if self.form.widget.state[file_name_convention_property]:
+            apply_file_name_convention_button.setStyleSheet("background-color : rgba(0,125,0,50)")
         else:
-            self.buttonApplyNameConvention.setStyleSheet("")
+            apply_file_name_convention_button.setStyleSheet("")
             
             self.form.widget.state = {
-                "descriptionFile": ""
+                file_description_property: ""
             }
 
-            self.itemsDescriptionList = []
+            save_dict[property]["add_files_items_descriptions"] = []
