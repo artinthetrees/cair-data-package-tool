@@ -374,7 +374,8 @@ schema = {
     "customBulkAddMultiLikeFilePaths": [
         {
             "prop": "path",
-            "collectProp": "associatedFileMultiLikeFiles",
+            "filePathsProp": "associatedFileMultiLikeFiles",
+            "fileIdsProp": "associatedFileMultiLikeFilesIds",
             "fileNameConventionProp": "descriptionFileNameConvention",
             "fileDescriptionProp": "descriptionFile"
         }
@@ -624,7 +625,7 @@ trackerDict = {
     "oneOrMulti": "one",
     "trackerFileNamePrefix": "", # e.g. "heal-csv-" - but will generally be an empty string
     "infoText": "You'll create a single result tracker for your study and add one entry per study result, often represented in the form of a table, figure, or figure panel. For each study result, you will document which study files were immediately used to produce this result product. This will provide a clear overview of how to replicate each of your study result products, and will facilitate understanding, replication, and reuse of your study results and data and methods used to produce your results.",
-    "trackerDescriptionLabel": "resultDescription"
+    "trackerDescriptionLabel": "resourceDescription"
 }
 
 
