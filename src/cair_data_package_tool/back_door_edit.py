@@ -438,10 +438,12 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     trackerIdLabel = trackerDict["trackerIdLabel"]
     trackerIdNumberLabel = trackerDict["trackerIdNumberLabel"]
     trackerNameLabel = trackerDict["trackerNameLabel"]
+    trackerIdPrefix = trackerDict["trackerIdPrefix"]
     ###############
     if trackerNameLabel in annotation:
         currentName = annotation[trackerNameLabel]
     currentId = annotation[trackerIdLabel]
+    currentIdNumber = annotation[trackerIdNumberLabel]
     ###############
     annotationSaveFileName = trackerDict["trackerJsonFilePrefix"] + currentId + annotationFileNameExtension
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
@@ -554,6 +556,40 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
         return False, "annotation failed schema validation"
     else:
         pass 
+
+    ######################################################################################################
+
+    if self.schema.get("customBulkAddMultiLikeFilePaths"):
+        print("customBulkAddMultiLikeFilePaths")
+        for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+            prop = i["prop"]
+            filePathsProp = i["filePathsProp"]
+            fileIdsProp = i["fileIdsProp"]
+            fileNameConventionProp = i["fileNameConventionProp"]
+            fileDescriptionProp = i["fileDescriptionProp"]
+            
+            added_files_items = self.self.dynamic_customBulkAddMultiLikeFilePaths[prop]["added_files_items"]
+            added_files_items_descriptions = self.self.dynamic_customBulkAddMultiLikeFilePaths[prop]["added_files_items_descriptions"]
+            if annotation[fileNameConventionProp] and (not added_files_items_descriptions or len(added_files_items_descriptions) != len(added_files_items)):
+                # TODO: run apply name convention and assign list of file descriptions to added_files_items_descriptions list here
+                pass
+            if self.mode == "add":
+                added_files_items_id_numbers = [currentIdNumber] + [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in added_files_items[1:]]
+                added_files_items_ids = [currentId] + [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers[1:]]
+                added_files_items_annotation_file_name = [annotationSaveFileName] + [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in added_files_items_ids[1:]]
+                added_files_items_annotation_file_path = [annotationSaveFilePath] + [os.path.join(saveFolderPath,fname) for fname in added_files_items_annotation_file_name[1:]]
+
+            if self.mode == "edit":
+                loaded_files_items = self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] 
+                loaded_files_items_ids = self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"]
+                
+                added_this_edit_bool = [0 if i in loaded_files_items else 1 for i in added_files_items]
+                removed_items_this_edit = [i for i in loaded_files_items if i not in added_files_items]
+                removed_items_idx_this_edit = [loaded_files_items.index(i) for i in removed_items_this_edit]
+                removed_items_ids_this_edit = [loaded_files_items_ids[idx] for idx in removed_items_idx_this_edit]
+                
+                added_files_items = added_files_items + removed_items_this_edit
+                added_files_items_ids = added_files_items_ids + removed_items_ids_this_edit
 
     ######################################################################################################
     # start items for edit mode only

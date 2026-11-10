@@ -692,7 +692,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             #######################################
             # for editing terms (not add based on)
             # do the following
-            #######################################
+            #######################################           
 
             ########################
             # start utility fxs
@@ -882,13 +882,24 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                     if not data:
                         self.set_disabled_widget_by_name(allNames=True)
                         return
+
+        if self.mode == "edit":
+            # check if a schema prop has been assigned bulk add file paths status and if so, load any bulk added file paths and ids
+            if self.schema.get("customBulkAddMultiLikeFilePaths"):
+                print("customBulkAddMultiLikeFilePaths")
+                for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+                    prop = i["prop"]
+                    filePathsProp = i["filePathsProp"]
+                    fileIdsProp = i["fileIdsProp"]
+                    self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] = data[filePathsProp]
+                    self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"] = data[fileIdsProp]
         
         self.form.widget.state = data
         
         if self.mode == "edit":
             self.conditional_fields_on_init() # this generalizes the customization - does it work?
             self.set_read_only_widget_by_name(name=self.trackerIdLabel)
-                
+        
         if self.mode == "add-based-on":
             dsc_pkg_utils.get_id(filePrefix=self.trackerJsonFilePrefix,folderPath=self.saveFolderPath,firstIdNum=1,fileExt=".txt",self=self)
             self.conditional_fields_on_init()
