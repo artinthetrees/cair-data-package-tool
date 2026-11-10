@@ -65,7 +65,7 @@ def multi_path_box(i,multi_path_box_type,self):
     save_dict.setdefault(prop, {})
 
     if multi_path_box_type == "customBulkAddMultiLikeFilePaths":
-        save_dict[prop]["collect_property"] = i["collectProp"]
+        save_dict[prop]["file_paths_property"] = i["filePathsProp"]
         save_dict[prop]["file_name_convention_property"] = i["fileNameConventionProp"]
         save_dict[prop]["file_description_property"] = i["fileDescriptionProp"]
 
@@ -227,10 +227,10 @@ def update_add_files_list_from_box(property,multi_path_box_type,self):
             property: refactored_items_list
         }
     elif multi_path_box_type == "customBulkAddMultiLikeFilePaths": 
-        collectProperty = save_dict[property]["collect_property"]
+        filePathsProperty = save_dict[property]["file_paths_property"]
         self.form.widget.state = {
             property: refactored_items_list[0],
-            collectProperty: refactored_items_list
+            filePathsProperty: refactored_items_list
         }
 
     if multi_path_box_type == "customBulkAddFilePaths":
