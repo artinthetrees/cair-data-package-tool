@@ -1,6 +1,7 @@
 import sys
 import os
 
+import pandas as pd
 import json
 import copy
 
@@ -907,6 +908,11 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
         super().__init__()
         self.dynamic_customBulkAddMultiLikeFilePaths = {}
 
+        # populated in self.load_file_extra()
+        self.loaded_files_items_df = None
+        self.loadedMultiLikeFileResource = None
+
+
     def initUI_extra(self):
         # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
         if self.schema.get("customBulkAddMultiLikeFilePaths"):
@@ -920,21 +926,19 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
     def load_file_extra(self,data): 
 
         if data["associatedFileMultiLikeFiles"]: 
-            multiLikeResource = True
+            loadedMultiLikeFileResource = True
         else:
-            multiLikeResource = False
+            loadedMultiLikeFileResource = False
 
         if self.mode == "add-based-on":
-            if multiLikeResource: 
+            if loadedMultiLikeFileResource: 
                 messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
                 saveFormat = '<span style="color:red;">{}</span>'
                 self.userMessageBox.append(saveFormat.format(messageText))
                 return
-            else:
-                loaded_files_items_df = None
 
         if self.mode == "edit":    
-            if multiLikeResource: 
+            if loadedMultiLikeFileResource: 
                 loaded_files_items = data["associatedFileMultiLikeFiles"]
                 loaded_files_items = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items)
                 loaded_files_items_ids = data["associatedFileMultiLikeFilesIds"]
@@ -954,10 +958,9 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
                 "id": loaded_files_items_ids
             }
             loaded_files_items_df = pd.DataFrame(loaded_files_items_dict)
-            loaded_files_items_df["loadedFromFile"] = 1
         
         self.loaded_files_items_df = loaded_files_items_df
-        self.multiLikeResource = multiLikeResource
+        self.loadedMultiLikeFileResource = loadedMultiLikeFileResource
         
         self.load_file_end(data=data)
 
