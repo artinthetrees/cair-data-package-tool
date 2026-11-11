@@ -917,37 +917,48 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
                 ############
         self.initUI_end()
 
-    def load_file_extra(self,data):    
-        # check if a schema prop has been assigned bulk add file paths status and if so, load any bulk added file paths and ids
-        if self.schema.get("customBulkAddMultiLikeFilePaths"):
-            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
-                prop = i["prop"]
-                filePathsProp = i["filePathsProp"]
-                fileIdsProp = i["fileIdsProp"]
+    def load_file_extra(self,data): 
 
-                loaded_files_items = data[filePathsProp]
+        if data["associatedFileMultiLikeFiles"]: 
+            multiLikeResource = True
+        else:
+            multiLikeResource = False
+
+        if self.mode == "add-based-on":
+            if multiLikeResource: 
+                messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
+                saveFormat = '<span style="color:red;">{}</span>'
+                self.userMessageBox.append(saveFormat.format(messageText))
+                return
+            else:
+                loaded_files_items_df = None
+
+        if self.mode == "edit":    
+            if multiLikeResource: 
+                loaded_files_items = data["associatedFileMultiLikeFiles"]
                 loaded_files_items = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items)
-                self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] = loaded_files_items
-
-                loaded_files_items_ids = data[fileIdsProp]
+                loaded_files_items_ids = data["associatedFileMultiLikeFilesIds"]
                 loaded_files_items_ids = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items_ids)
-                self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"] = loaded_files_items_ids
 
-                if self.mode == "add-based-on":
-                    if loaded_files_items: 
-                        messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
-                        saveFormat = '<span style="color:red;">{}</span>'
-                        self.userMessageBox.append(saveFormat.format(messageText))
-                        return
+                if data["path"] != loaded_files_items[0]: 
+                    messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. You can head to the \"View Tracker\" tab to view your Resource Tracker, identify the resource ID for the first resource in the series for this multi-like file resource, then try again.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
+                    saveFormat = '<span style="color:red;">{}</span>'
+                    self.userMessageBox.append(saveFormat.format(messageText))
+                    return
+            else: 
+                loaded_files_items = [data["path"]]
+                loaded_files_items_ids = [data["resourceId"]]
 
-                if self.mode == "edit":        
-                    if loaded_files_items:
-                        if data[prop] != loaded_files_items[0]: 
-                            messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. You can head to the \"View Tracker\" tab to view your Resource Tracker, identify the resource ID for the first resource in the series for this multi-like file resource, then try again.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
-                            saveFormat = '<span style="color:red;">{}</span>'
-                            self.userMessageBox.append(saveFormat.format(messageText))
-                            return
-
+            loaded_files_items_dict = {
+                "path": loaded_files_items,
+                "id": loaded_files_items_ids
+            }
+            loaded_files_items_df = pd.DataFrame(loaded_files_items_dict)
+            loaded_files_items_df["loadedFromFile"] = 1
+        
+        self.loaded_files_items_df = loaded_files_items_df
+        self.multiLikeResource = multiLikeResource
+        
         self.load_file_end(data=data)
 
         
