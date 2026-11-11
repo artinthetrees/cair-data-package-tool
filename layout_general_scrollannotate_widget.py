@@ -46,11 +46,8 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             print("customDynamicEnum")
             for i in self.schema.get("customDynamicEnum"):
                 prop = i["prop"]
-                print(prop)
                 fromTrackerType = i["fromTrackerType"]
-                print(fromTrackerType)
                 fromProp = i["fromProp"]
-                print(fromProp)
                 includeLatestOnly = i["includeLatestOnly"]
                 includeRemoved = i["includeRemoved"]
                 fromTrackerDict = [d for d in self.trackersToAddToTool if d["trackerType"] == fromTrackerType]
@@ -89,10 +86,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         # Initialize a dictionary to keep track of any dynamically created items due to customBulkAddFilePaths custom schema prop
         self.dynamic_customBulkAddFilePaths = {}
-        self.dynamic_customBulkAddMultiLikeFilePaths = {}
-        self.initUI()
+        self.initUI_start()
 
-    def initUI(self):
+    def initUI_start(self):
         self.scroll = QtWidgets.QScrollArea()             # Scroll Area which contains the widgets, set as the centralWidget
         self.widget = QtWidgets.QWidget()                 # Widget that contains the collection of Vertical Box
         self.vbox = QtWidgets.QVBoxLayout()               # The Vertical Box that contains the Horizontal Boxes of  labels and buttons
@@ -203,15 +199,12 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             for i in self.schema.get("customBulkAddFilePaths"):
                 widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddFilePaths",self=self)
 
-        ############
-        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
-        if self.schema.get("customBulkAddMultiLikeFilePaths"):
-            print("customBulkAddMultiLikeFilePaths")
-            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
-                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddMultiLikeFilePaths",self=self)
+        self.initUI_extra()
 
-                ############
+    def initUI_extra(self):
+        self.initUI_end()
 
+    def initUI_end(self):
         self.vbox.addWidget(self.form)
         
         self.widget.setLayout(self.vbox)
@@ -667,9 +660,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         selected_id = self.w2.selected_row_data[selected_id_index] 
         selected_id_base_filename = self.trackerJsonFilePrefix + selected_id + ".txt" 
         selected_id_full_path_filename = os.path.join(self.workingDataPkgDir,selected_id_base_filename)
-        self.load_file(path=selected_id_full_path_filename)
+        self.load_file_start(path=selected_id_full_path_filename)
 
-    def load_file(self,path):
+    def load_file_start(self,path):
     
         ifileName = path
 
@@ -883,17 +876,12 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                         self.set_disabled_widget_by_name(allNames=True)
                         return
 
-        if self.mode == "edit":
-            # check if a schema prop has been assigned bulk add file paths status and if so, load any bulk added file paths and ids
-            if self.schema.get("customBulkAddMultiLikeFilePaths"):
-                print("customBulkAddMultiLikeFilePaths")
-                for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
-                    prop = i["prop"]
-                    filePathsProp = i["filePathsProp"]
-                    fileIdsProp = i["fileIdsProp"]
-                    self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] = data[filePathsProp]
-                    self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"] = data[fileIdsProp]
-        
+        self.load_file_extra(data=data)
+
+    def load_file_extra(self,data):    
+        self.load_file_end(data=data)
+
+    def load_file_end(self,data):    
         self.form.widget.state = data
         
         if self.mode == "edit":
@@ -909,8 +897,58 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         self.loadingFormDataFromFile = False
 
-            
+    
+                    
           
+class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
+    def __init__(
+            self
+            ):
+        super().__init__()
+        self.dynamic_customBulkAddMultiLikeFilePaths = {}
+
+    def initUI_extra(self):
+        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        if self.schema.get("customBulkAddMultiLikeFilePaths"):
+            print("customBulkAddMultiLikeFilePaths")
+            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddMultiLikeFilePaths",self=self)
+
+                ############
+        self.initUI_end()
+
+    def load_file_extra(self,data):    
+        # check if a schema prop has been assigned bulk add file paths status and if so, load any bulk added file paths and ids
+        if self.schema.get("customBulkAddMultiLikeFilePaths"):
+            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+                prop = i["prop"]
+                filePathsProp = i["filePathsProp"]
+                fileIdsProp = i["fileIdsProp"]
+
+                loaded_files_items = data[filePathsProp]
+                loaded_files_items = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items)
+                self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] = loaded_files_items
+
+                loaded_files_items_ids = data[fileIdsProp]
+                loaded_files_items_ids = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items_ids)
+                self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"] = loaded_files_items_ids
+
+                if self.mode == "add-based-on":
+                    if loaded_files_items: 
+                        messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
+                        saveFormat = '<span style="color:red;">{}</span>'
+                        self.userMessageBox.append(saveFormat.format(messageText))
+                        return
+
+                if self.mode == "edit":        
+                    if loaded_files_items:
+                        if data[prop] != loaded_files_items[0]: 
+                            messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. You can head to the \"View Tracker\" tab to view your Resource Tracker, identify the resource ID for the first resource in the series for this multi-like file resource, then try again.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
+                            saveFormat = '<span style="color:red;">{}</span>'
+                            self.userMessageBox.append(saveFormat.format(messageText))
+                            return
+
+        self.load_file_end(data=data)
 
         
 
