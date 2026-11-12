@@ -380,6 +380,7 @@ schema = {
             "fileDescriptionProp": "descriptionFile"
         }
     ],
+    "customScrollAnnotateWidgetType":"resource",
     "customDynamicEnum": [
         {
             "prop": "experimentNameBelongsTo",
