@@ -909,7 +909,7 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
         self.dynamic_customBulkAddMultiLikeFilePaths = {}
 
         # populated in self.load_file_extra()
-        self.loaded_files_items_df = None
+        self.loaded_files_items_df = pd.DataFrame(columns=["path","id"]) # will be an empty df unless mode == edit
         self.loadedMultiLikeFileResource = None
 
 
