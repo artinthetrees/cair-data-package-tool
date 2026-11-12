@@ -671,7 +671,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             data = json.load(stream)
 
         if self.mode == "add-based-on":
-            based_on_annotation_id = data[self.trackerIdLabel]
+            self.based_on_annotation_id = data[self.trackerIdLabel]
             #######################################
             # for add based on (not edit) mode
             # do the following
@@ -892,7 +892,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         if self.mode == "add-based-on":
             dsc_pkg_utils.get_id(filePrefix=self.trackerJsonFilePrefix,folderPath=self.saveFolderPath,firstIdNum=1,fileExt=".txt",self=self)
             self.conditional_fields_on_init()
-            messageText = "<br>Your new " + self.trackerType + " has been initialized based on information you entered for " + based_on_annotation_id + "<br><br>"
+            messageText = "<br>Your new " + self.trackerType + " has been initialized based on information you entered for " + self.based_on_annotation_id + "<br><br>"
             saveFormat = '<span style="color:blue;">{}</span>'
             self.userMessageBox.append(saveFormat.format(messageText))
 
@@ -903,10 +903,23 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
           
 class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
     def __init__(
-            self
+            self, 
+            workingDataPkgDirDisplay,
+            workingDataPkgDir,
+            trackerDict,
+            trackersToAddToTool, 
+            filesCheckList, 
+            mode,
             ):
-        super().__init__()
-        self.dynamic_customBulkAddMultiLikeFilePaths = {}
+        super().__init__(
+            workingDataPkgDirDisplay,
+            workingDataPkgDir,
+            trackerDict,
+            trackersToAddToTool, 
+            filesCheckList, 
+            mode
+        )
+        
 
         # populated in self.load_file_extra()
         self.loaded_files_items_df = pd.DataFrame(columns=["path","id"]) # will be an empty df unless mode == edit
@@ -915,6 +928,7 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
 
     def initUI_extra(self):
         # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        self.dynamic_customBulkAddMultiLikeFilePaths = {}
         if self.schema.get("customBulkAddMultiLikeFilePaths"):
             print("customBulkAddMultiLikeFilePaths")
             for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
