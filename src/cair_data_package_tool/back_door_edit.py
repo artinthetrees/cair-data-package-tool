@@ -540,34 +540,16 @@ def save_resource_annotation(
             save_files_items_df = pd.concat([loaded_files_items_df,added_files_items_df])
         else:
             save_files_items_df = loaded_files_items_df
+
+        save_files_items_df = save_files_items_df.drop(columns=["fileDescription"])
+        save_files_items_df = save_files_items_df.merge(current_files_items_df[["path","fileDescription"]], on = "path", how = "left")         
+        save_files_items_df["fileDescription"] = save_files_items_df["fileDescription"].fillna("")
     else:
         save_files_items_df = current_files_items_df
 
     save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
     save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
 
-    
-
-    i
-
-    if self.mode == "edit":
-        loaded_files_items = self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] 
-        loaded_files_items_ids = self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items_ids"]
-        loaded_files_items_id_numbers = [int(id.split("-")[1]) for id in loaded_files_items_ids]
-
-        added_files_items_id_numbers_newly_added = [ dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) else -999 for i in added_files_items if i not in loaded_files_items ]
-                        
-        
-                        
-        
-        added_this_edit_bool = [0 if i in loaded_files_items else 1 for i in added_files_items]
-        added_files_items_ids = [currentId] + [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers[1:]]
-        removed_items_this_edit = [i for i in loaded_files_items if i not in added_files_items]
-        removed_items_idx_this_edit = [loaded_files_items.index(i) for i in removed_items_this_edit]
-        removed_items_ids_this_edit = [loaded_files_items_ids[idx] for idx in removed_items_idx_this_edit]
-        
-        added_files_items = added_files_items + removed_items_this_edit
-        added_files_items_ids = added_files_items_ids + removed_items_ids_this_edit
 
 def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,self=None):
     
