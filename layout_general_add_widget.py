@@ -6,7 +6,8 @@ from pathlib import Path # base python, no pip install needed
 import cair_data_package_tool.dsc_pkg_utils as dsc_pkg_utils 
 import cair_data_package_tool.version_check as version_check
 
-from layout_general_scrollannotate_widget import ScrollAnnotateWindow
+#from layout_general_scrollannotate_widget import ScrollAnnotateWindow
+import layout_general_scrollannotate_widget
 
 class AddWindow(QtWidgets.QMainWindow):
 
@@ -24,6 +25,10 @@ class AddWindow(QtWidgets.QMainWindow):
         self.schemaVersion = self.trackerDict["schemaVersion"]
         self.trackerName = self.trackerDict["trackerName"]
         self.trackerTitle = self.trackerDict["trackerTitle"]
+
+        self.scrollannotate_type = "general"
+        if self.trackerDict["schema"].get("customScrollAnnotateWidgetType"):
+            self.scrollannotate_type = self.trackerDict["schema"].get("customScrollAnnotateWidgetType")
         
         widget = QtWidgets.QWidget()
         
@@ -73,23 +78,39 @@ class AddWindow(QtWidgets.QMainWindow):
 
         # form will only be opened if a valid working data pkg dir is set, and that dir will be passed to the form widget
         if self.w is None:
-            self.w = ScrollAnnotateWindow(
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
                 workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
                 workingDataPkgDir=self.workingDataPkgDir,
                 trackerDict=self.trackerDict,
                 trackersToAddToTool=self.trackersToAddToTool,
-                mode="add")
+                mode="add",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+            #     workingDataPkgDir=self.workingDataPkgDir,
+            #     trackerDict=self.trackerDict,
+            #     trackersToAddToTool=self.trackersToAddToTool,
+            #     mode="add")
             self.w.show()
 
         else:
             self.w.close()  # Close window.
             self.w = None  # Discard reference.
-            self.w = ScrollAnnotateWindow(
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
                 workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
                 workingDataPkgDir=self.workingDataPkgDir,
                 trackerDict=self.trackerDict,
                 trackersToAddToTool=self.trackersToAddToTool,
-                mode="add")
+                mode="add",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+            #     workingDataPkgDir=self.workingDataPkgDir,
+            #     trackerDict=self.trackerDict,
+            #     trackersToAddToTool=self.trackersToAddToTool,
+            #     mode="add")
             self.w.show()
 
     def edit(self,checked):
@@ -189,25 +210,43 @@ class AddWindow(QtWidgets.QMainWindow):
 
         # form will only be opened if a valid working data pkg dir is set, and that dir will be passed to the form widget
         if self.w is None:
-            self.w = ScrollAnnotateWindow(
-                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
-                workingDataPkgDir=self.workingDataPkgDir, 
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
+                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+                workingDataPkgDir=self.workingDataPkgDir,
                 trackerDict=self.trackerDict,
                 filesCheckList=filesCheckList,
-                trackersToAddToTool=self.trackersToAddToTool, 
-                mode="edit")
+                trackersToAddToTool=self.trackersToAddToTool,
+                mode="edit",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
+            #     workingDataPkgDir=self.workingDataPkgDir, 
+            #     trackerDict=self.trackerDict,
+            #     filesCheckList=filesCheckList,
+            #     trackersToAddToTool=self.trackersToAddToTool, 
+            #     mode="edit")
             self.w.show()
             self.w.select_load_file()
         else:
             self.w.close()  # Close window.
             self.w = None  # Discard reference.
-            self.w = ScrollAnnotateWindow(
-                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
-                workingDataPkgDir=self.workingDataPkgDir, 
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
+                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+                workingDataPkgDir=self.workingDataPkgDir,
                 trackerDict=self.trackerDict,
-                filesCheckList=filesCheckList, 
+                filesCheckList=filesCheckList,
                 trackersToAddToTool=self.trackersToAddToTool,
-                mode="edit")
+                mode="edit",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
+            #     workingDataPkgDir=self.workingDataPkgDir, 
+            #     trackerDict=self.trackerDict,
+            #     filesCheckList=filesCheckList, 
+            #     trackersToAddToTool=self.trackersToAddToTool,
+            #     mode="edit")
             self.w.show()
             self.w.select_load_file()       
 
@@ -306,24 +345,42 @@ class AddWindow(QtWidgets.QMainWindow):
 
         # form will only be opened if a valid working data pkg dir is set, and that dir will be passed to the form widget
         if self.w is None:
-            self.w = ScrollAnnotateWindow(
-                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
-                workingDataPkgDir=workingDataPkgDir, 
-                filesCheckList=filesCheckList, 
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
+                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+                workingDataPkgDir=self.workingDataPkgDir,
+                trackerDict=self.trackerDict,
+                filesCheckList=filesCheckList,
                 trackersToAddToTool=self.trackersToAddToTool,
-                mode="add-based-on")
+                mode="add-based-on",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
+            #     workingDataPkgDir=workingDataPkgDir, 
+            #     filesCheckList=filesCheckList, 
+            #     trackersToAddToTool=self.trackersToAddToTool,
+            #     mode="add-based-on")
             self.w.show()
             self.w.select_load_file()
 
         else:
             self.w.close()  # Close window.
             self.w = None  # Discard reference.
-            self.w = ScrollAnnotateWindow(
-                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
-                workingDataPkgDir=workingDataPkgDir, 
-                filesCheckList=filesCheckList, 
+            self.w = layout_general_scrollannotate_widget.get_scrollannotate(
+                workingDataPkgDirDisplay=self.workingDataPkgDirDisplay,
+                workingDataPkgDir=self.workingDataPkgDir,
+                trackerDict=self.trackerDict,
+                filesCheckList=filesCheckList,
                 trackersToAddToTool=self.trackersToAddToTool,
-                mode="add-based-on")
+                mode="add-based-on",
+                scrollannotate_type=self.scrollannotate_type
+                )
+            # self.w = ScrollAnnotateWindow(
+            #     workingDataPkgDirDisplay=self.workingDataPkgDirDisplay, 
+            #     workingDataPkgDir=workingDataPkgDir, 
+            #     filesCheckList=filesCheckList, 
+            #     trackersToAddToTool=self.trackersToAddToTool,
+            #     mode="add-based-on")
             self.w.show()
             self.w.select_load_file()
 
