@@ -966,6 +966,35 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
 
         
 
+class_registry = {
+    "general": ScrollAnnotateWindow,
+    "resource": Resource_ScrollAnnotateWindow,
+}
+
+def get_scrollannotate(
+        workingDataPkgDirDisplay,
+        workingDataPkgDir,
+        trackerDict,
+        trackersToAddToTool,
+        mode,
+        filesCheckList=[],
+        scrollannotate_type="general"
+        ):
+    # look up the class by the input parameter
+    cls = class_registry.get(scrollannotate_type)
+    if not cls:
+        raise ValueError(f"Unknown scrollannotate type: {scrollannotate_type}")
+    
+    # instantiate and return the class
+    return cls(
+        workingDataPkgDirDisplay=workingDataPkgDirDisplay,
+        workingDataPkgDir=workingDataPkgDir,
+        trackerDict=trackerDict,
+        filesCheckList=filesCheckList,
+        trackersToAddToTool=trackersToAddToTool,
+        mode=mode
+    )
+
 if __name__ == "__main__":
     
     app = QtWidgets.QApplication(sys.argv)
