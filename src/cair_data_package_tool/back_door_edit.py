@@ -10,6 +10,7 @@ from qtpy import QtWidgets, QtGui
 import cair_data_package_tool.schema_utils as schema_utils
 import cair_data_package_tool.dsc_pkg_utils as dsc_pkg_utils
 import cair_data_package_tool.version_check as version_check
+import cair_data_package_tool.widget_utils as widget_utils
 
 
 metadataDirLockFileName = "in-use.txt"
@@ -427,9 +428,6 @@ def save_resource_annotation(
         loaded_files_items_df = self.loaded_files_items_df
         multiLikeFileResource = self.loadedMultiLikeFileResource
         ###############
-        # currentName = self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].text()
-        # currentId = self.formWidgetList[self.formWidgetNameList.index(self.trackerIdLabel)].text()
-        ###############
     else:
         ###############
         annotation = copy.deepcopy(data)
@@ -439,9 +437,6 @@ def save_resource_annotation(
         schema = schema
         loaded_files_items_df = loaded_files_items_df
         multiLikeFileResource = loadedMultiLikeFileResource
-        ###############
-        # currentName = annotation[trackerNameLabel]
-        # currentId = annotation[trackerIdLabel]
         ###############
 
     ############### 
@@ -467,7 +462,10 @@ def save_resource_annotation(
 
     # first call save_annotation but just do basic annotation clean-up, validation/checks, addition of data (e.g. annotationCreate/Mod DateTime);
     # don't use this function to actually archive old or save new files
-    save_annotation(processOnly=True)
+    save_annotation(
+        self=self,
+        prepOnly=True
+        )
 
     if annotation["associatedFileMultiLikeFiles"]: 
         currentMultiLikeFileResource = True
@@ -475,12 +473,13 @@ def save_resource_annotation(
         currentMultiLikeFileResource = False
 
     if currentMultiLikeFileResource:
-        # mode is one of: edit, add
         current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items"]
-        current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items_descriptions"]
-        if annotation["descriptionFileNameConvention"] and (not current_files_items_descriptions or len(current_files_items_descriptions) != len(current_files_items)):
-            # TODO: run apply name convention and assign list of file descriptions to current_files_items_descriptions list here
-            pass
+        if annotation["descriptionFileNameConvention"]:
+            widget_utils.apply_name_convention(property="path",self=self)
+            current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items_descriptions"]
+        else:
+            current_files_items_descriptions = [""] * len(current_files_items)
+        
         if mode == "edit":
             current_files_items_ids = [""] * len(current_files_items)
             current_files_items_id_numbers = [-999] * len(current_files_items)
@@ -577,6 +576,9 @@ def save_resource_annotation(
         print(check_files_items_already_assigned_id_df["path"].values.tolist())
         return
 
+    if currentMultiLikeFileResource:
+        annotation["associatedFileMultiLikeFilesIds"] = save_files_items_not_deleted_df["id"].values.tolist()
+
     
 
     
@@ -606,7 +608,7 @@ def save_resource_annotation(
     #                 saveFormat = '<span style="color:blue;">{}</span>'
     #                 self.userMessageBox.append(saveFormat.format(messageText))
 
-def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,self=None):
+def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,prepOnly=False,self=None):
     
     """
     Arguments:
@@ -616,6 +618,7 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     mode -- string; required if self not provided; either "edit" or "add" to respectively 1) archive existing annotation file, update existing annotation file to input data, add updated data to tracker as new record, 2) add new annotation file with input data, add new data to tracker as record
     schema -- object; schema against which the data should be validated; if self is provided will be taken from self.schema; if self not provided and schema not provided will be taken from trackerDict.schema; reason for this is that in some limited cases schema may be dynamically updated from the canonical version stored in trackerDict - e.g. in case of experimentBelongsTo property in data package result and resource trackers which has dynamic enums according to unique values of experimentName property provided across all experiments in experiment tracker   
 
+    prepOnly -- boolean; 
     self -- instance of layout_general_scrollannotate_widget
 
     """
@@ -628,9 +631,6 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
         mode = self.mode
         schema = self.schema
         ###############
-        # currentName = self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].text()
-        # currentId = self.formWidgetList[self.formWidgetNameList.index(self.trackerIdLabel)].text()
-        ###############
     else:
         ###############
         annotation = copy.deepcopy(data)
@@ -638,9 +638,6 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
         saveFolderPath = saveFolderPath
         mode = mode
         schema = schema
-        ###############
-        # currentName = annotation[trackerNameLabel]
-        # currentId = annotation[trackerIdLabel]
         ###############
 
     ############### 
@@ -664,6 +661,9 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
     ###############
 
+    if prepOnly:
+        print("running save_annotation for " + annotation[trackerIdLabel] + " in prepOnly mode; prep complete; will return annotation if prep completes successfully...")
+    
     ######################################################################################################
     # basic checks for tracker file exists and closed
     ###################################################################################################### 
@@ -772,6 +772,10 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     else:
         pass 
 
+    if prepOnly:
+        print("ran save_annotation for " + annotation[trackerIdLabel] + " in prepOnly mode; prep complete; returning annotation...")
+        return annotation
+    
     ######################################################################################################
     # start items for edit mode only
     ###################################################################################################### 
