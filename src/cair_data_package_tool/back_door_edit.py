@@ -546,9 +546,29 @@ def save_resource_annotation(
         save_files_items_df["fileDescription"] = save_files_items_df["fileDescription"].fillna("")
     else:
         save_files_items_df = current_files_items_df
+        save_files_items_df["loadedFromFile"] = 0
+        save_files_items_df["deleted"] = 0
+        save_files_items_df["added"] = 1
 
     save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
     save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
+
+    if mode == "edit":
+        currentId = annotation["resourceId"]
+
+        # get file path at which to archive the existing annotation json txt file
+        annotationArchiveFolderName = "archive"
+        annotationArchiveFolderPath = os.path.join(saveFolderPath,annotationArchiveFolderName)
+
+        if not os.path.exists(annotationArchiveFolderPath):
+            os.mkdir(annotationArchiveFolderPath)
+
+        annotationArchiveFilePrefix = trackerDict["trackerJsonFilePrefix"] + currentId + "-"
+        annotationArchiveFileNumber = dsc_pkg_utils.get_id(filePrefix=annotationArchiveFilePrefix,folderPath=annotationArchiveFolderPath)
+
+        save_files_items_df["archiveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + "-" + str(annotationArchiveFileNumber) + annotationFileNameExtension for id in save_files_items_df["id"]]
+        save_files_items_df["archivePath"] = [os.path.join(annotationArchiveFolderPath,fname) for fname in save_files_items_df["archiveName"]] 
+
 
 
 def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,self=None):
