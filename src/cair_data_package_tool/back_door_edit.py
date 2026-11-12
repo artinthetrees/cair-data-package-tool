@@ -465,38 +465,39 @@ def save_resource_annotation(
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
     ###############
 
-    # if add
-    #   - if multiLikeFileResource
-    #   - if singleFileResource
-    # if edit
-    #   - if multiLikeFileResource
-    #       - loaded_files_items_df is multi row
-    #       - 
-    #   - if singleFileResource
-    # if add-based-on
-    #   - if multiLikeFileResource
-    #       - will never happen
-    #   - if singleFileResource:
-    #       - coming in self.loaded_files_items_df exists and has a value of None
-    #       - added_files_items_df is single row
-
     if annotation["associatedFileMultiLikeFiles"]: 
         currentMultiLikeFileResource = True
     else:
         currentMultiLikeFileResource = False
 
     if currentMultiLikeFileResource:
+        # mode is one of: edit, add
         current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items"]
         current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items_descriptions"]
-        if annotation["descriptionFileNameConvention"] and (not current_files_items_descriptions or len(current_files_items_descriptions) != len(added_files_items)):
+        if annotation["descriptionFileNameConvention"] and (not current_files_items_descriptions or len(current_files_items_descriptions) != len(current_files_items)):
             # TODO: run apply name convention and assign list of file descriptions to current_files_items_descriptions list here
             pass
+        if mode == "edit":
+            current_files_items_ids = [""] * len(current_files_items)
+            current_files_items_id_numbers = [-999] * len(current_files_items)
+        else:
+            current_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in current_files_items]
+            current_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in current_files_items_id_numbers]
     else:
         current_files_items = [annotation["path"]]
         current_files_items_descriptions = [""]
-
+        
+        if mode == "edit":
+            current_files_items_ids = [""]
+            current_files_items_id_numbers = [-999]
+        else:
+            current_files_items_ids = [annotation["resourceId"]]
+            current_files_items_id_numbers = [annotation["resourceIdNumber"]]
+        
     current_files_items_dict = {
         "path": current_files_items,
+        "id": current_files_items_ids,
+        "idNum": current_files_items_id_numbers,
         "fileDescription": current_files_items_descriptions
     }
     current_files_items_df = pd.DataFrame(current_files_items_dict)     
@@ -506,49 +507,48 @@ def save_resource_annotation(
         loaded_files_items = loaded_files_items_df["path"].values
         loaded_files_items_ids = loaded_files_items_df["id"].values
         loaded_files_items_id_numbers = [int(id.split("-")[1]) for id in loaded_files_items_ids]
-        loaded_files_items_annotation_file_names = [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in loaded_files_items_ids]
-        loaded_files_items_annotation_file_paths = [os.path.join(saveFolderPath,fname) for fname in loaded_files_items_annotation_file_names]
+        #loaded_files_items_annotation_file_names = [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in loaded_files_items_ids]
+        #loaded_files_items_annotation_file_paths = [os.path.join(saveFolderPath,fname) for fname in loaded_files_items_annotation_file_names]
         loaded_files_items_dict = {
                     "path": loaded_files_items,
                     "id": loaded_files_items_ids,
                     "idNum": loaded_files_items_id_numbers,
-                    "saveName": loaded_files_items_annotation_file_names,
-                    "savePath": loaded_files_items_annotation_file_paths
+                    #"saveName": loaded_files_items_annotation_file_names,
+                    #"savePath": loaded_files_items_annotation_file_paths
                 }
         loaded_files_items_df = pd.DataFrame(loaded_files_items_dict)
-        loaded_files_items_df["archiveName"] = ""
-        loaded_files_items_df["archivePath"] = ""
+        #loaded_files_items_df["archiveName"] = ""
+        #loaded_files_items_df["archivePath"] = ""
         loaded_files_items_df["loadedFromFile"] = 1
         loaded_files_items_df["deleted"] = [ 1 if p not in current_files_items else 0 for p in loaded_files_items]
         loaded_files_items_df["added"] = 0
-    ##########         
-
-    if mode == "edit":
+            
         added_files_items = [p for p in current_files_items if p not in loaded_files_items_df["path"].values]
+
+        if added_files_items:
+            added_files_items_df = current_files_items_df.loc[current_files_items_df["path"].isin(added_files_items)]
+
+            added_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in added_files_items]
+            added_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers]        
+
+            added_files_items_df["id"] = added_files_items_ids
+            added_files_items_df["idNum"] = added_files_items_id_numbers
+            added_files_items_df["loadedFromFile"] = 0
+            added_files_items_df["deleted"] = 0
+            added_files_items_df["added"] = 1
+
+            save_files_items_df = pd.concat([loaded_files_items_df,added_files_items_df])
+        else:
+            save_files_items_df = loaded_files_items_df
     else:
-        added_files_items = current_files_items
+        save_files_items_df = current_files_items_df
 
-    if added_files_items:
-        added_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in added_files_items]
-        added_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers]
-        added_files_items_annotation_file_names = [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in added_files_items_ids]
-        added_files_items_annotation_file_paths = [os.path.join(saveFolderPath,fname) for fname in added_files_items_annotation_file_names]
+    save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
+    save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
 
-        added_files_items_dict = {
-            "path": added_files_items,
-            "id": added_files_items_ids,
-            "idNum": added_files_items_id_numbers,
-            "saveName": added_files_items_annotation_file_names,
-            "savePath": added_files_items_annotation_file_paths
-        }
-        added_files_items_df = pd.DataFrame(added_files_items_dict)
-        added_files_items_df["archiveName"] = ""
-        added_files_items_df["archivePath"] = ""
-        added_files_items_df["loadedFromFile"] = 0
-        added_files_items_df["deleted"] = 0
-        added_files_items_df["added"] = 1
+    
 
-    if loaded_files_items
+    i
 
     if self.mode == "edit":
         loaded_files_items = self.dynamic_customBulkAddMultiLikeFilePaths[prop]["loaded_files_items"] 
