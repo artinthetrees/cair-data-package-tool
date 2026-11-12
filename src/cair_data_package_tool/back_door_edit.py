@@ -425,7 +425,7 @@ def save_resource_annotation(
         mode = self.mode
         schema = self.schema
         loaded_files_items_df = self.loaded_files_items_df
-        multiLikeFileResource = self.multiLikeFileResource
+        multiLikeFileResource = self.loadedMultiLikeFileResource
         ###############
         # currentName = self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].text()
         # currentId = self.formWidgetList[self.formWidgetNameList.index(self.trackerIdLabel)].text()
@@ -438,7 +438,7 @@ def save_resource_annotation(
         mode = mode
         schema = schema
         loaded_files_items_df = loaded_files_items_df
-        multiLikeFileResource = multiLikeFileResource
+        multiLikeFileResource = loadedMultiLikeFileResource
         ###############
         # currentName = annotation[trackerNameLabel]
         # currentId = annotation[trackerIdLabel]
@@ -464,6 +464,10 @@ def save_resource_annotation(
     annotationSaveFileName = trackerDict["trackerJsonFilePrefix"] + currentId + annotationFileNameExtension
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
     ###############
+
+    # first call save_annotation but just do basic annotation clean-up, validation/checks, addition of data (e.g. annotationCreate/Mod DateTime);
+    # don't use this function to actually archive old or save new files
+    save_annotation(processOnly=True)
 
     if annotation["associatedFileMultiLikeFiles"]: 
         currentMultiLikeFileResource = True
@@ -553,6 +557,31 @@ def save_resource_annotation(
     save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
     save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
 
+    # check that any resources that are currently being added or edited have file paths that exist
+    save_files_items_df["pathExists"] = [1 if os.path.isfile(p) else 0 for p in save_files_items_df["path"]]
+
+    # check that any resources that are currently being added or edited have file paths that have not already been assigned a resource-id
+    save_files_items_df["pathAlreadyAssignedId"] = [1 if p in dsc_pkg_utils.get_tracker_entries(workingDataPkgDir=saveFolderPath, trackerType="resource-tracker", latestEntryOnly=True, includeRemovedEntry=False, excludeIdList=[id])["path"] else 0 for p,id in zip(save_files_items_df["path"],save_files_items_df["id"])]
+
+    # only perform these checks for file paths that have not been deleted/removed
+    save_files_items_not_deleted_df = save_files_items_df.loc[save_files_items_df["deleted"] == 0]
+    
+    check_files_items_not_exist_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathExists"] == 0]
+    check_files_items_already_assigned_id_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathAlreadyAssignedId"] == 1]
+    if check_files_items_not_exist_df.shape[0] > 0:
+        print("files paths you are attempting to annotate do not exist: ")
+        print(check_files_items_not_exist_df["path"].values.tolist())
+        return
+    if check_files_items_already_assigned_id_df.shape[0] > 0:
+        print("files paths you are attempting to annotate have already been assigned a resource id: ")
+        print(check_files_items_already_assigned_id_df["path"].values.tolist())
+        return
+
+    
+
+    
+
+
     if mode == "edit":
         currentId = annotation["resourceId"]
 
@@ -569,7 +598,13 @@ def save_resource_annotation(
         save_files_items_df["archiveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + "-" + str(annotationArchiveFileNumber) + annotationFileNameExtension for id in save_files_items_df["id"]]
         save_files_items_df["archivePath"] = [os.path.join(annotationArchiveFolderPath,fname) for fname in save_files_items_df["archiveName"]] 
 
-
+    
+    
+    # if row.loadedFromFile == 1:
+    #                 os.rename(row.savePath,row.archivePath)
+    #                 messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
+    #                 saveFormat = '<span style="color:blue;">{}</span>'
+    #                 self.userMessageBox.append(saveFormat.format(messageText))
 
 def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,self=None):
     
