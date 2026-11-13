@@ -460,6 +460,14 @@ def save_resource_annotation(
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
     ###############
 
+    # call to save_annotation below will catch the lack of a description but have to check for path provided right away anyway so 
+    # may as well also check for description provided right away to return quickly if user needs to update form content
+    if not annotation["path"] and annotation["description"]:
+        messageText = "<br>You must add a resource file path and at least a minimal description of your resource to your resource annotation form before saving your resource. Please add a resource file path by browsing to the file path using the Resource File Path field in the form. If you are annotating a multi-like file resource, please add path(s) for your multi-like file resource by dragging and dropping the file path for your resource file in the drag and drop box above the form - Open this drag and drop box by clicking on the Add Multiple 'like' Resources button above the form). Add at least a minimal description of your resource in the Resource Description field in the form. For a multi-like file resource, provide a description of the overall set of files in the multi-like file resource. Then try saving again." 
+        errorFormat = '<span style="color:red;">{}</span>'
+        self.userMessageBox.append(errorFormat.format(messageText))
+        return
+
     # first call save_annotation but just do basic annotation clean-up, validation/checks, addition of data (e.g. annotationCreate/Mod DateTime);
     # don't use this function to actually archive old or save new files
     save_annotation(
@@ -484,6 +492,10 @@ def save_resource_annotation(
             current_files_items_ids = [""] * len(current_files_items)
             current_files_items_id_numbers = [-999] * len(current_files_items)
         else:
+            # get_id fx uses already saved annotation files to get max used id number and gives the next available, so use it to 
+            # get the next available id num then just add 1 for each additional id needed - these will be available 
+            next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
+            current_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(current_files_items)))
             current_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in current_files_items]
             current_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in current_files_items_id_numbers]
     else:
@@ -531,7 +543,10 @@ def save_resource_annotation(
         if added_files_items:
             added_files_items_df = current_files_items_df.loc[current_files_items_df["path"].isin(added_files_items)]
 
-            added_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in added_files_items]
+            # get_id fx uses already saved annotation files to get max used id number and gives the next available, so use it to 
+            # get the next available id num then just add 1 for each additional id needed - these will be available 
+            next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
+            added_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(added_files_items)))
             added_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers]        
 
             added_files_items_df["id"] = added_files_items_ids
