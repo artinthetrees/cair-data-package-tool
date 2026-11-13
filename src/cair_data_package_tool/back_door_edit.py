@@ -626,7 +626,8 @@ def save_resource_annotation(
     else:
         save_files_items_df["archiveName"] = ""
         save_files_items_df["archivePath"] = "" 
-            
+
+    annotation_list = []       
     for row in save_files_items_df.itertuples():
         if row.loadedFromFile == 1:
             os.rename(row.savePath,row.archivePath)
@@ -650,6 +651,39 @@ def save_resource_annotation(
         f=open(row.savePath,'w')
         print(json.dumps(currentResource, indent=4), file=f)
         f.close()
+
+        annotation_list.append(currentResource)
+
+    annotation_df = pd.json_normalize(annotation_list)
+
+    if save_files_items_df.shape[0] > 1:
+        myString1 = "files were"
+        myString2 = '<br>'.join(save_files_items_df["savePath"].tolist())
+    else: 
+        myString1 = "file was"
+        myString2 = save_files_items_df["savePath"][0]
+    
+    messageText = "<br>Your resource " + myString1 + " successfully written at: " + myString2 + "<br><br>Starting to add your resource(s) to the Resource Tracker now! See below for some final information about your saved resource(s) and then for updates on adding resource(s) to tracker: <br>"
+    # TODO: 
+    # for multi like file resource, give user some info about which of these resource files were loaded from file but removed in this edit, kept in this edit, or not loaded from file and added newly in this edit
+    # for single file resource that was edited to have a new path, should be the case that a new resource id is assigned so two annotation files will actually be written, one for the old resource id with removed == 1, and one for new resource id with removed == 0; give user info about this..
+    
+    if self: 
+        self.set_disabled_widget_by_name(allNames=True)
+        self.buttonSave.setEnabled(False)
+        # TODO: 
+        # also disable additional widgets that were added (e.g. bulk add file dependencies widget, add multi like files widget, apply name convention widget...)
+        # some of these are specific to resource tracker and should be added here; some of these are more general and should be added to general save_annotation..?
+        saveFormat = '<span style="color:green;">{}</span>'
+        self.userMessageBox.append(saveFormat.format(messageText))
+        self.userMessageBox.moveCursor(QtGui.QTextCursor.End)
+        QtWidgets.QApplication.processEvents() # print accumulated user status messages 
+    else:
+        print(messageText)
+
+    add_annotation_result = add_annotation(annotationDfMode=True,annotationDf=annotation_df,annotationDfSaveFilePathList=save_files_items_df["savePath"].values.tolist(),trackerFilePath=trackerFilePath,trackerIdNumberLabel=trackerIdNumberLabel,trackerType=trackerType,self=self) # add annotation data to csv tracker as new row
+    return add_annotation_result, "annotations saved successfully"
+
 
 def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,prepOnly=False,self=None):
     
@@ -910,12 +944,20 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     add_annotation_result = add_annotation(annotationSaveFilePath=annotationSaveFilePath,trackerFilePath=trackerFilePath,trackerIdNumberLabel=trackerIdNumberLabel,trackerType=trackerType,self=self) # add annotation data to csv tracker as new row
     return add_annotation_result, "annotation saved successfully"
 
-def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,trackerType,self=None):
-    
-    # read in data from annotation json txt file
-    data = json.loads(pathlib.Path(annotationSaveFilePath).read_text())
-    # convert json to df
-    df = pd.json_normalize(data) # df is a one row dataframe
+def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,trackerType,annotationDf,annotationDfSaveFilePathList,annotationDfMode=False,self=None):
+    # NOTE: if using annotationDfMode, must supply both annotationDf and annotationDfSaveFilePathList
+    # TODO: one issue with adding directly from df is that it doesn't explicitly check that the annotation file exists
+    #       - this could be good if we want to move away from annotation files (?)
+    #       - could also add a check that the annotation file exists here? that the annotation file contents are exact match of content in df? 
+    #       - ALTERNATIVE APPROACH: have a "bulk mode" where just provide list of annotation save file paths and load each from file into df and then add all at once 
+    #       - ^ this alt approach would strictly enforce that annotation file is source of truth
+    if not annotationDfMode:
+        # read in data from annotation json txt file
+        data = json.loads(pathlib.Path(annotationSaveFilePath).read_text())
+        # convert json to df
+        df = pd.json_normalize(data) # df is a one row dataframe
+    else:
+        df = annotationDf
                 
     # read in tracker df
     all_df = pd.read_csv(trackerFilePath)
@@ -930,8 +972,11 @@ def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,t
 
     all_df.to_csv(trackerFilePath, mode='w', header=True, index=False)
 
-    messageText = "The contents of the " + trackerType + " annotation file at: <br><br>" + annotationSaveFilePath + "<br><br>was added as a new record to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath
-        
+    if not annotationDfMode:
+        messageText = "The contents of the " + trackerType + " annotation file at: <br><br>" + annotationSaveFilePath + "<br><br>was added as a new record to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath
+    else:
+        messageText = "The contents of the " + trackerType + " annotation files at: <br><br>" + "<br>".join(annotationDfSaveFilePathList) + "<br><br>were added as new records to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath  
+            
     if self:
         errorFormat = '<span style="color:green;">{}</span>'
         self.userMessageBox.append(errorFormat.format(messageText))
