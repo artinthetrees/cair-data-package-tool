@@ -571,15 +571,13 @@ def save_resource_annotation(
     save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
     save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
 
-    # check that any resources that are currently being added or edited have file paths that exist
-    save_files_items_df["pathExists"] = [1 if os.path.isfile(p) else 0 for p in save_files_items_df["path"]]
-
-    # check that any resources that are currently being added or edited have file paths that have not already been assigned a resource-id
-    save_files_items_df["pathAlreadyAssignedId"] = [1 if p in dsc_pkg_utils.get_tracker_entries(workingDataPkgDir=saveFolderPath, trackerType="resource-tracker", latestEntryOnly=True, includeRemovedEntry=False, excludeIdList=[id])["path"] else 0 for p,id in zip(save_files_items_df["path"],save_files_items_df["id"])]
-
+    # check: that any resources that are currently being added or edited have file paths that exist
+    # check: that any resources that are currently being added or edited have file paths that have not already been assigned a resource-id
     # only perform these checks for file paths that have not been deleted/removed
+    save_files_items_df["pathExists"] = [1 if os.path.isfile(p) else 0 for p in save_files_items_df["path"]]
+    save_files_items_df["pathAlreadyAssignedId"] = [1 if p in dsc_pkg_utils.get_tracker_entries(workingDataPkgDir=saveFolderPath, trackerType="resource-tracker", latestEntryOnly=True, includeRemovedEntry=False, excludeIdList=[id])["path"] else 0 for p,id in zip(save_files_items_df["path"],save_files_items_df["id"])]  
     save_files_items_not_deleted_df = save_files_items_df.loc[save_files_items_df["deleted"] == 0]
-    
+
     check_files_items_not_exist_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathExists"] == 0]
     check_files_items_already_assigned_id_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathAlreadyAssignedId"] == 1]
     if check_files_items_not_exist_df.shape[0] > 0:
@@ -591,6 +589,17 @@ def save_resource_annotation(
         print(check_files_items_already_assigned_id_df["path"].values.tolist())
         return
 
+    # TODO (maybe unnecessary/overkill?)
+    # check: that any resources that were loaded from file have a current annotation file (i.e. savePath exists) - these resources were either edited or deleted in this round
+    # check: that any resoures that were not loaded from file do not have a current annotation file - these resources were added in this round
+    save_files_items_df["checkLoadedHaveAnnotation"] = [1 if loaded and not os.path.isfile(saveP) else 0 for loaded,saveP in zip(save_files_items_df["loadedFromFile"],save_files_items_df["savePath"])]
+    save_files_items_df["checkAddedNotHaveAnnotation"] = [1 if added and os.path.isfile(saveP) else 0 for added,saveP in zip(save_files_items_df["added"],save_files_items_df["savePath"])]
+    if save_files_items_df["checkLoadedHaveAnnotation"].sum() > 0:
+        pass
+        
+    if save_files_items_df["checkAddedNotHaveAnnotation"].sum() > 0:
+        pass
+
     if currentMultiLikeFileResource:
         annotation["associatedFileMultiLikeFilesIds"] = save_files_items_not_deleted_df["id"].values.tolist()
     
@@ -598,7 +607,7 @@ def save_resource_annotation(
     save_files_items_df["resourceModDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceModTimeStamp"],save_files_items_df["pathExists"])]
     save_files_items_df["resourceCreateTimeStamp"] = [os.path.getctime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
     save_files_items_df["resourceModCreateDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceCreateTimeStamp"],save_files_items_df["pathExists"])]
-        
+
     if mode == "edit":
         currentId = annotation["resourceId"]
 
@@ -612,16 +621,35 @@ def save_resource_annotation(
         annotationArchiveFilePrefix = trackerDict["trackerJsonFilePrefix"] + currentId + "-"
         annotationArchiveFileNumber = dsc_pkg_utils.get_id(filePrefix=annotationArchiveFilePrefix,folderPath=annotationArchiveFolderPath)
 
-        save_files_items_df["archiveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + "-" + str(annotationArchiveFileNumber) + annotationFileNameExtension for id in save_files_items_df["id"]]
+        save_files_items_df["archiveName"] = [trackerDict["trackerJsonFilePrefix"] + id + "-" + str(annotationArchiveFileNumber) + annotationFileNameExtension for id in save_files_items_df["id"]]
         save_files_items_df["archivePath"] = [os.path.join(annotationArchiveFolderPath,fname) for fname in save_files_items_df["archiveName"]] 
-
-    
-    
-    # if row.loadedFromFile == 1:
-    #                 os.rename(row.savePath,row.archivePath)
-    #                 messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
-    #                 saveFormat = '<span style="color:blue;">{}</span>'
-    #                 self.userMessageBox.append(saveFormat.format(messageText))
+    else:
+        save_files_items_df["archiveName"] = ""
+        save_files_items_df["archivePath"] = "" 
+            
+    for row in save_files_items_df.itertuples():
+        if row.loadedFromFile == 1:
+            os.rename(row.savePath,row.archivePath)
+            messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
+            saveFormat = '<span style="color:blue;">{}</span>'
+            self.userMessageBox.append(saveFormat.format(messageText))
+        
+        currentResource = copy.deepcopy(annotation)
+            
+        currentResource["resourceId"] = row.id
+        currentResource["resourceIdNumber"] = row.idNum
+        currentResource["path"] = row.path
+        currentResource["descriptionFile"] = row.fileDescription
+        currentResource["resourceCreateDateTime"] = row.resourceCreateDateTime
+        currentResource["resourceModDateTime"] = row.resourceModDateTime
+        currentResource["resourceModTimeStamp"] = row.resourceModTimeStamp
+        currentResource["removed"] = 0
+        if row.deleted == 1:
+            currentResource["removed"] = 1
+        
+        f=open(row.savePath,'w')
+        print(json.dumps(currentResource, indent=4), file=f)
+        f.close()
 
 def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,prepOnly=False,self=None):
     
