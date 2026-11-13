@@ -137,7 +137,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         
         # create save button
         self.buttonSave = QtWidgets.QPushButton(text="Save " + self.trackerType,parent=self)
-        self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
+        #self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
         
         self.buttonSave.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
@@ -203,6 +203,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         self.initUI_extra()
 
     def initUI_extra(self):
+        self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
         self.initUI_end()
 
     def initUI_end(self):
@@ -935,6 +936,7 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
                 widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddMultiLikeFilePaths",self=self)
 
                 ############
+        self.buttonSave.clicked.connect(lambda : back_door_edit.save_resource_annotation(self=self))
         self.initUI_end()
 
     def load_file_extra(self,data): 
