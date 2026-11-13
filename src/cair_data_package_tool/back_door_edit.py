@@ -578,12 +578,12 @@ def save_resource_annotation(
 
     if currentMultiLikeFileResource:
         annotation["associatedFileMultiLikeFilesIds"] = save_files_items_not_deleted_df["id"].values.tolist()
-
     
-
-    
-
-
+    save_files_items_df["resourceModTimeStamp"] = [os.path.getmtime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceModDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceModTimeStamp"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceCreateTimeStamp"] = [os.path.getctime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceModCreateDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceCreateTimeStamp"],save_files_items_df["pathExists"])]
+        
     if mode == "edit":
         currentId = annotation["resourceId"]
 
