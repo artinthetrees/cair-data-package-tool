@@ -593,7 +593,7 @@ def get_tracker_entries(workingDataPkgDir=None, trackerDf = pd.DataFrame(), trac
         getTrk = os.path.join(getDir,fileName)
         
         if os.path.isfile(getTrk):
-            trackerDf = pd.read_csv(getTrk)
+            trackerDf = pd.read_csv(getTrk,dtype=str,keep_default_na=False)
         else:
             return False
 
