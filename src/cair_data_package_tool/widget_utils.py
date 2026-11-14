@@ -405,3 +405,21 @@ def conditional_highlight_apply_name_convention(property,self):
             }
 
             save_dict[property]["add_files_items_descriptions"] = []
+
+def warnMultiLikeResource(self): # only for resource tracker
+
+    editOptions =["All files within multi \'like\' file resource"]
+    editOption, done = QtWidgets.QInputDialog.getItem(
+        self, 'Edit Mode', 'NOTE: You have selected a resource file that was originally annotated as part of a multi \'like\' file resource. If you proceed to edit this file and save the edits, you will edit the annotation for all resource files that are part of the multi \'like\' file resource.', editOptions)
+
+    if done:
+        # removed the single option so the first condition now will never be true
+        if str(editOption).startswith("Single"):
+            self.editSingle = True
+            messageText = "Edits you make in this form will be applied <b>only to this single resource file</b>. All other resource files within the larger multi \'like\' file resource of which this resource file is a part will remain unaltered."
+            saveFormat = '<span style="color:blue;">{}</span>'
+            self.userMessageBox.append(saveFormat.format(messageText))
+        else:
+            messageText = "Edits you make in this form will be applied <b>to all resource files</b> within the larger multi \'like\' file resource of which this resource file is a part."
+            saveFormat = '<span style="color:blue;">{}</span>'
+            self.userMessageBox.append(saveFormat.format(messageText)) 
