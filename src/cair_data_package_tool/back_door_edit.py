@@ -470,10 +470,11 @@ def save_resource_annotation(
 
     # first call save_annotation but just do basic annotation clean-up, validation/checks, addition of data (e.g. annotationCreate/Mod DateTime);
     # don't use this function to actually archive old or save new files
-    save_annotation(
+    prepped_annotation = save_annotation(
         self=self,
         prepOnly=True
-        )
+    )    
+    annotation = copy.deepcopy(prepped_annotation)
 
     if annotation["associatedFileMultiLikeFiles"]: 
         currentMultiLikeFileResource = True
@@ -481,10 +482,11 @@ def save_resource_annotation(
         currentMultiLikeFileResource = False
 
     if currentMultiLikeFileResource:
-        current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items"]
+        print("dynamic_customBulkAddMultiLikeFilePaths: ",self.dynamic_customBulkAddMultiLikeFilePaths)
+        current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_items"]
         if annotation["descriptionFileNameConvention"]:
             widget_utils.apply_name_convention(property="path",self=self)
-            current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["added_files_items_descriptions"]
+            current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_items_descriptions"]
         else:
             current_files_items_descriptions = [""] * len(current_files_items)
         
@@ -496,7 +498,8 @@ def save_resource_annotation(
             # get the next available id num then just add 1 for each additional id needed - these will be available 
             next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
             current_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(current_files_items)))
-            current_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in current_files_items]
+            print("current_files_items_id_numbers: ",current_files_items_id_numbers)
+            #current_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in current_files_items]
             current_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in current_files_items_id_numbers]
     else:
         current_files_items = [annotation["path"]]
@@ -606,7 +609,7 @@ def save_resource_annotation(
     save_files_items_df["resourceModTimeStamp"] = [os.path.getmtime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
     save_files_items_df["resourceModDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceModTimeStamp"],save_files_items_df["pathExists"])]
     save_files_items_df["resourceCreateTimeStamp"] = [os.path.getctime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
-    save_files_items_df["resourceModCreateDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceCreateTimeStamp"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceCreateDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceCreateTimeStamp"],save_files_items_df["pathExists"])]
 
     if mode == "edit":
         currentId = annotation["resourceId"]
@@ -944,7 +947,7 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     add_annotation_result = add_annotation(annotationSaveFilePath=annotationSaveFilePath,trackerFilePath=trackerFilePath,trackerIdNumberLabel=trackerIdNumberLabel,trackerType=trackerType,self=self) # add annotation data to csv tracker as new row
     return add_annotation_result, "annotation saved successfully"
 
-def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,trackerType,annotationDf,annotationDfSaveFilePathList,annotationDfMode=False,self=None):
+def add_annotation(annotationSaveFilePath=None,trackerFilePath=None,trackerIdNumberLabel=None,trackerType=None,annotationDf=None,annotationDfSaveFilePathList=None,annotationDfMode=False,self=None):
     # NOTE: if using annotationDfMode, must supply both annotationDf and annotationDfSaveFilePathList
     # TODO: one issue with adding directly from df is that it doesn't explicitly check that the annotation file exists
     #       - this could be good if we want to move away from annotation files (?)
@@ -952,6 +955,8 @@ def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,t
     #       - ALTERNATIVE APPROACH: have a "bulk mode" where just provide list of annotation save file paths and load each from file into df and then add all at once 
     #       - ^ this alt approach would strictly enforce that annotation file is source of truth
     if not annotationDfMode:
+        if not annotationSaveFilePath:
+            print("annotationSaveFilePath must be provided to add_annotation")
         # read in data from annotation json txt file
         data = json.loads(pathlib.Path(annotationSaveFilePath).read_text())
         # convert json to df
