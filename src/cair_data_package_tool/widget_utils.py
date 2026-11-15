@@ -423,3 +423,11 @@ def warnMultiLikeResource(self): # only for resource tracker
             messageText = "Edits you make in this form will be applied <b>to all resource files</b> within the larger multi \'like\' file resource of which this resource file is a part."
             saveFormat = '<span style="color:blue;">{}</span>'
             self.userMessageBox.append(saveFormat.format(messageText)) 
+
+def disable_form(self):
+    self.set_disabled_widget_by_name(allNames=True)
+    self.buttonSave.setEnabled(False)
+    # TODO: 
+    # also disable additional widgets that were added (e.g. bulk add file dependencies widget, add multi like files widget, apply name convention widget...)
+    # some of these are specific to resource tracker and should be added here; some of these are more general and should be added to general save_annotation..?
+    
