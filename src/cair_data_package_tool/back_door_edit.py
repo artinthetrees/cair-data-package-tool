@@ -630,25 +630,38 @@ def save_resource_annotation(
         save_files_items_df["archiveName"] = ""
         save_files_items_df["archivePath"] = "" 
 
+    # get annotation mod date time and time stamp to update this on deleted resource files
+    annotationModDateTime = annotation["annotationModDateTime"]
+    annotationModTimeStamp = annotation["annotationModTimeStamp"]
+    #
     annotation_list = []       
     for row in save_files_items_df.itertuples():
         if row.loadedFromFile == 1:
+            if row.deleted == 1:
+                with open(row.SavePath, 'r',encoding='utf-8') as stream:
+                    currentResource = json.load(stream)
+            else:
+                currentResource = copy.deepcopy(annotation)
+            
             os.rename(row.savePath,row.archivePath)
             messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
             saveFormat = '<span style="color:blue;">{}</span>'
             self.userMessageBox.append(saveFormat.format(messageText))
-        
-        currentResource = copy.deepcopy(annotation)
-            
-        currentResource["resourceId"] = row.id
-        currentResource["resourceIdNumber"] = row.idNum
-        currentResource["path"] = row.path
-        currentResource["descriptionFile"] = row.fileDescription
-        currentResource["resourceCreateDateTime"] = row.resourceCreateDateTime
-        currentResource["resourceModDateTime"] = row.resourceModDateTime
-        currentResource["resourceModTimeStamp"] = row.resourceModTimeStamp
-        currentResource["removed"] = 0
-        if row.deleted == 1:
+
+        if row.deleted == 0:        
+            currentResource["resourceId"] = row.id
+            currentResource["resourceIdNumber"] = row.idNum
+            currentResource["path"] = row.path
+            currentResource["descriptionFile"] = row.fileDescription
+            currentResource["resourceCreateDateTime"] = row.resourceCreateDateTime
+            currentResource["resourceModDateTime"] = row.resourceModDateTime
+            currentResource["resourceModTimeStamp"] = row.resourceModTimeStamp
+            currentResource["removed"] = 0
+        else:
+            # if deleting a resource save a version of the resource annotation file in dsc-pkg (non-archive) exactly the same
+            # as version prior to deletion except with updated annotation mod time and removed == 1
+            currentResource["annotationModDateTime"] = annotationModDateTime
+            currentResource["annotationModTimeStamp"] = annotationModTimeStamp
             currentResource["removed"] = 1
         
         f=open(row.savePath,'w')
