@@ -951,11 +951,11 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
                 messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
                 saveFormat = '<span style="color:red;">{}</span>'
                 self.userMessageBox.append(saveFormat.format(messageText))
+                widget_utils.disable_form(self=self)
                 return
 
         if self.mode == "edit":    
             if loadedMultiLikeFileResource: 
-                widget_utils.warnMultiLikeResource()
                 loaded_files_items = data["associatedFileMultiLikeFiles"]
                 loaded_files_items = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items)
                 loaded_files_items_ids = data["associatedFileMultiLikeFilesIds"]
@@ -965,14 +965,19 @@ class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
                 first_of_multi_id = loaded_files_items_ids[0]
                 
                 if data["path"] != first_of_multi_path: 
-                    messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. You can head to the \"View Tracker\" tab to view your Resource Tracker, identify the resource ID for the first resource in the series for this multi-like file resource, then try again.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window.<br><br>"
-                    messageText = messageText + "The id for the first resource in this multi-like file resource is: " + first_of_multi_id
+                    messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. <br><br>"
+                    messageText = messageText + "The id for the first resource in this multi-like file resource is: " + first_of_multi_id + ". If you intended to edit this multi-like file resource, first close this form, then go back and select " + first_of_multi_id + " for editing.<br><br>"
                     saveFormat = '<span style="color:red;">{}</span>'
                     self.userMessageBox.append(saveFormat.format(messageText))
+                    widget_utils.disable_form(self=self)
                     return
-                
+
+                # warn user they are editing a multi-like file resource and all resources in the set will be edited if action is continued
+                widget_utils.warnMultiLikeResource(self=self)
+                                
                 self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_box"].addItems(data["associatedFileMultiLikeFiles"])
                 widget_utils.toggle_add_file_box_visibility(
+                    self=self,
                     property="path",
                     label= self.dynamic_customBulkAddMultiLikeFilePaths["path"]["lbl"],
                     add_files_box=self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_box"]
