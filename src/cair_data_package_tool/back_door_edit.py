@@ -10,6 +10,7 @@ from qtpy import QtWidgets, QtGui
 import cair_data_package_tool.schema_utils as schema_utils
 import cair_data_package_tool.dsc_pkg_utils as dsc_pkg_utils
 import cair_data_package_tool.version_check as version_check
+import cair_data_package_tool.widget_utils as widget_utils
 
 
 metadataDirLockFileName = "in-use.txt"
@@ -390,8 +391,19 @@ def check_name_unique(currentId=None, currentName=None, trackerDict=None, saveFo
             allowSave = False
 
     return nameStatus, allowSave
-           
-def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,self=None):
+
+def save_resource_annotation(
+        data=None,
+        trackerDict=None,
+        saveFolderPath=None,
+        mode=None,
+        annotationFileNameExtension=".txt",
+        checkForDescription=True,
+        checkForName=False,
+        schema=None,
+        loaded_files_items_df= None,
+        loadedMultiLikeFileResource=None,
+        self=None):
     
     """
     Arguments:
@@ -400,7 +412,8 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     saveFolderPath -- string; required if self not provided; full file path to folder in which annotation files and tracker are saved
     mode -- string; required if self not provided; either "edit" or "add" to respectively 1) archive existing annotation file, update existing annotation file to input data, add updated data to tracker as new record, 2) add new annotation file with input data, add new data to tracker as record
     schema -- object; schema against which the data should be validated; if self is provided will be taken from self.schema; if self not provided and schema not provided will be taken from trackerDict.schema; reason for this is that in some limited cases schema may be dynamically updated from the canonical version stored in trackerDict - e.g. in case of experimentBelongsTo property in data package result and resource trackers which has dynamic enums according to unique values of experimentName property provided across all experiments in experiment tracker   
-
+    loaded_files_items_df -- dataframe; only provide if mode is edit; columns are path and resource id; one row per resource; if loaded resource to edit is part of a multi like file resource all files that are part of the set will be loaded, one row per resource in set; if resource is NOT part of a multi like file resource this df will be one row with the single resource path and resource id
+    loadedMultiLikeFileResource -- boolean; only provide if mode is edit; true if resource loaded to edit is part of a multi like file resource, otherwise false
     self -- instance of layout_general_scrollannotate_widget
 
     """
@@ -412,20 +425,18 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
         saveFolderPath = self.saveFolderPath
         mode = self.mode
         schema = self.schema
-        ###############
-        # currentName = self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].text()
-        # currentId = self.formWidgetList[self.formWidgetNameList.index(self.trackerIdLabel)].text()
+        loaded_files_items_df = self.loaded_files_items_df
+        multiLikeFileResource = self.loadedMultiLikeFileResource
         ###############
     else:
         ###############
-        annotation = data
+        annotation = copy.deepcopy(data)
         trackerDict = trackerDict
         saveFolderPath = saveFolderPath
         mode = mode
         schema = schema
-        ###############
-        # currentName = annotation[trackerNameLabel]
-        # currentId = annotation[trackerIdLabel]
+        loaded_files_items_df = loaded_files_items_df
+        multiLikeFileResource = loadedMultiLikeFileResource
         ###############
 
     ############### 
@@ -438,15 +449,312 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     trackerIdLabel = trackerDict["trackerIdLabel"]
     trackerIdNumberLabel = trackerDict["trackerIdNumberLabel"]
     trackerNameLabel = trackerDict["trackerNameLabel"]
+    trackerIdPrefix = trackerDict["trackerIdPrefix"]
     ###############
     if trackerNameLabel in annotation:
         currentName = annotation[trackerNameLabel]
     currentId = annotation[trackerIdLabel]
+    currentIdNumber = annotation[trackerIdNumberLabel]
     ###############
     annotationSaveFileName = trackerDict["trackerJsonFilePrefix"] + currentId + annotationFileNameExtension
     annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
     ###############
 
+    # call to save_annotation below will catch the lack of a description but have to check for path provided right away anyway so 
+    # may as well also check for description provided right away to return quickly if user needs to update form content
+    if not annotation["path"] and annotation["description"]:
+        messageText = "<br>You must add a resource file path and at least a minimal description of your resource to your resource annotation form before saving your resource. Please add a resource file path by browsing to the file path using the Resource File Path field in the form. If you are annotating a multi-like file resource, please add path(s) for your multi-like file resource by dragging and dropping the file path for your resource file in the drag and drop box above the form - Open this drag and drop box by clicking on the Add Multiple 'like' Resources button above the form). Add at least a minimal description of your resource in the Resource Description field in the form. For a multi-like file resource, provide a description of the overall set of files in the multi-like file resource. Then try saving again." 
+        errorFormat = '<span style="color:red;">{}</span>'
+        self.userMessageBox.append(errorFormat.format(messageText))
+        return
+
+    # first call save_annotation but just do basic annotation clean-up, validation/checks, addition of data (e.g. annotationCreate/Mod DateTime);
+    # don't use this function to actually archive old or save new files
+    prepped_annotation = save_annotation(
+        self=self,
+        prepOnly=True
+    )    
+    annotation = copy.deepcopy(prepped_annotation)
+
+    if annotation["associatedFileMultiLikeFiles"]: 
+        currentMultiLikeFileResource = True
+    else:
+        currentMultiLikeFileResource = False
+
+    if currentMultiLikeFileResource:
+        current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_items"]
+        if annotation["descriptionFileNameConvention"]:
+            widget_utils.apply_name_convention(property="path",self=self)
+            current_files_items_descriptions = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_items_descriptions"]
+        else:
+            current_files_items_descriptions = [""] * len(current_files_items)
+        
+        if mode == "edit":
+            current_files_items_ids = [""] * len(current_files_items)
+            current_files_items_id_numbers = [-999] * len(current_files_items)
+        else:
+            # get_id fx uses already saved annotation files to get max used id number and gives the next available, so use it to 
+            # get the next available id num then just add 1 for each additional id needed - these will be available 
+            next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
+            current_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(current_files_items)))
+            current_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in current_files_items_id_numbers]
+    else:
+        current_files_items = [annotation["path"]]
+        current_files_items_descriptions = [""]
+        
+        if mode == "edit":
+            current_files_items_ids = [""]
+            current_files_items_id_numbers = [-999]
+        else:
+            current_files_items_ids = [annotation["resourceId"]]
+            current_files_items_id_numbers = [annotation["resourceIdNumber"]]
+        
+    current_files_items_dict = {
+        "path": current_files_items,
+        "id": current_files_items_ids,
+        "idNum": current_files_items_id_numbers,
+        "fileDescription": current_files_items_descriptions
+    }
+    current_files_items_df = pd.DataFrame(current_files_items_dict)    
+
+    ##########
+    if mode == "edit":
+        loaded_files_items = loaded_files_items_df["path"].values
+        loaded_files_items_ids = loaded_files_items_df["id"].values
+        loaded_files_items_id_numbers = [int(id.split("-")[1]) for id in loaded_files_items_ids]
+        #loaded_files_items_annotation_file_names = [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in loaded_files_items_ids]
+        #loaded_files_items_annotation_file_paths = [os.path.join(saveFolderPath,fname) for fname in loaded_files_items_annotation_file_names]
+        loaded_files_items_dict = {
+                    "path": loaded_files_items,
+                    "id": loaded_files_items_ids,
+                    "idNum": loaded_files_items_id_numbers,
+                    #"saveName": loaded_files_items_annotation_file_names,
+                    #"savePath": loaded_files_items_annotation_file_paths
+                }
+        loaded_files_items_df = pd.DataFrame(loaded_files_items_dict)
+        #loaded_files_items_df["archiveName"] = ""
+        #loaded_files_items_df["archivePath"] = ""
+        loaded_files_items_df["loadedFromFile"] = 1
+        loaded_files_items_df["deleted"] = [ 1 if p not in current_files_items else 0 for p in loaded_files_items]
+        loaded_files_items_df["added"] = 0
+        loaded_files_items_df["fileDescription"] = ""
+            
+        added_files_items = [p for p in current_files_items if p not in loaded_files_items_df["path"].values]
+
+        if added_files_items:
+            added_files_items_df = current_files_items_df.loc[current_files_items_df["path"].isin(added_files_items)]
+
+            # get_id fx uses already saved annotation files to get max used id number and gives the next available, so use it to 
+            # get the next available id num then just add 1 for each additional id needed - these will be available 
+            next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
+            added_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(added_files_items)))
+            added_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in added_files_items_id_numbers]        
+
+            added_files_items_df["id"] = added_files_items_ids
+            added_files_items_df["idNum"] = added_files_items_id_numbers
+            added_files_items_df["loadedFromFile"] = 0
+            added_files_items_df["deleted"] = 0
+            added_files_items_df["added"] = 1
+
+            save_files_items_df = pd.concat([loaded_files_items_df,added_files_items_df])
+        else:
+            save_files_items_df = loaded_files_items_df
+
+        save_files_items_df = save_files_items_df.drop(columns=["fileDescription"])
+        save_files_items_df = save_files_items_df.merge(current_files_items_df[["path","fileDescription"]], on = "path", how = "left")         
+        save_files_items_df["fileDescription"] = save_files_items_df["fileDescription"].fillna("")
+    else:
+        save_files_items_df = current_files_items_df
+        save_files_items_df["loadedFromFile"] = 0
+        save_files_items_df["deleted"] = 0
+        save_files_items_df["added"] = 1
+
+    save_files_items_df["saveName"] =  [trackerDict["trackerJsonFilePrefix"] + id + annotationFileNameExtension for id in save_files_items_df["id"]]
+    save_files_items_df["savePath"] = [os.path.join(saveFolderPath,fname) for fname in save_files_items_df["saveName"]]
+
+    # check: that any resources that are currently being added or edited have file paths that exist
+    # check: that any resources that are currently being added or edited have file paths that have not already been assigned a resource-id
+    # only perform these checks for file paths that have not been deleted/removed
+    save_files_items_df["pathExists"] = [1 if os.path.isfile(p) else 0 for p in save_files_items_df["path"]]
+    save_files_items_df["pathAlreadyAssignedId"] = [1 if p in dsc_pkg_utils.get_tracker_entries(workingDataPkgDir=saveFolderPath, trackerType="resource-tracker", latestEntryOnly=True, includeRemovedEntry=False, excludeIdList=[id])["path"] else 0 for p,id in zip(save_files_items_df["path"],save_files_items_df["id"])]  
+    save_files_items_not_deleted_df = save_files_items_df.loc[save_files_items_df["deleted"] == 0]
+
+    check_files_items_not_exist_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathExists"] == 0]
+    check_files_items_already_assigned_id_df = save_files_items_not_deleted_df.loc[save_files_items_not_deleted_df["pathAlreadyAssignedId"] == 1]
+    if check_files_items_not_exist_df.shape[0] > 0:
+        print("files paths you are attempting to annotate do not exist: ")
+        print(check_files_items_not_exist_df["path"].values.tolist())
+        return
+    if check_files_items_already_assigned_id_df.shape[0] > 0:
+        print("files paths you are attempting to annotate have already been assigned a resource id: ")
+        print(check_files_items_already_assigned_id_df["path"].values.tolist())
+        return
+
+    # TODO (maybe unnecessary/overkill?)
+    # check: that any resources that were loaded from file have a current annotation file (i.e. savePath exists) - these resources were either edited or deleted in this round
+    # check: that any resoures that were not loaded from file do not have a current annotation file - these resources were added in this round
+    save_files_items_df["checkLoadedHaveAnnotation"] = [1 if loaded and not os.path.isfile(saveP) else 0 for loaded,saveP in zip(save_files_items_df["loadedFromFile"],save_files_items_df["savePath"])]
+    save_files_items_df["checkAddedNotHaveAnnotation"] = [1 if added and os.path.isfile(saveP) else 0 for added,saveP in zip(save_files_items_df["added"],save_files_items_df["savePath"])]
+    if save_files_items_df["checkLoadedHaveAnnotation"].sum() > 0:
+        pass
+        
+    if save_files_items_df["checkAddedNotHaveAnnotation"].sum() > 0:
+        pass
+
+    if currentMultiLikeFileResource:
+        annotation["associatedFileMultiLikeFilesIds"] = save_files_items_not_deleted_df["id"].values.tolist()
+    
+    save_files_items_df["resourceModTimeStamp"] = [os.path.getmtime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceModDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceModTimeStamp"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceCreateTimeStamp"] = [os.path.getctime(p) if e else None for p,e in zip(save_files_items_df["path"],save_files_items_df["pathExists"])]
+    save_files_items_df["resourceCreateDateTime"] = [datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d, %H:%M:%S") if e else None for ts,e in zip(save_files_items_df["resourceCreateTimeStamp"],save_files_items_df["pathExists"])]
+
+    if mode == "edit":
+        currentId = annotation["resourceId"]
+
+        # get file path at which to archive the existing annotation json txt file
+        annotationArchiveFolderName = "archive"
+        annotationArchiveFolderPath = os.path.join(saveFolderPath,annotationArchiveFolderName)
+
+        if not os.path.exists(annotationArchiveFolderPath):
+            os.mkdir(annotationArchiveFolderPath)
+
+        annotationArchiveFilePrefix = trackerDict["trackerJsonFilePrefix"] + currentId + "-"
+        annotationArchiveFileNumber = dsc_pkg_utils.get_id(filePrefix=annotationArchiveFilePrefix,folderPath=annotationArchiveFolderPath)
+
+        save_files_items_df["archiveName"] = [trackerDict["trackerJsonFilePrefix"] + id + "-" + str(annotationArchiveFileNumber) + annotationFileNameExtension for id in save_files_items_df["id"]]
+        save_files_items_df["archivePath"] = [os.path.join(annotationArchiveFolderPath,fname) for fname in save_files_items_df["archiveName"]] 
+    else:
+        save_files_items_df["archiveName"] = ""
+        save_files_items_df["archivePath"] = "" 
+
+    # get annotation mod date time and time stamp to update this on deleted resource files
+    annotationModDateTime = annotation["annotationModDateTime"]
+    annotationModTimeStamp = annotation["annotationModTimeStamp"]
+    #
+    annotation_list = []       
+    for row in save_files_items_df.itertuples():
+        if row.loadedFromFile == 1 and row.deleted == 1:
+            with open(row.savePath, 'r',encoding='utf-8') as stream:
+                currentResource = json.load(stream)
+        else: 
+            currentResource = copy.deepcopy(annotation)
+
+        if row.loadedFromFile == 1:
+            os.rename(row.savePath,row.archivePath)
+            messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
+            saveFormat = '<span style="color:blue;">{}</span>'
+            self.userMessageBox.append(saveFormat.format(messageText))
+
+        if row.deleted == 0:        
+            currentResource["resourceId"] = row.id
+            currentResource["resourceIdNumber"] = row.idNum
+            currentResource["path"] = row.path
+            currentResource["descriptionFile"] = row.fileDescription
+            currentResource["resourceCreateDateTime"] = row.resourceCreateDateTime
+            currentResource["resourceModDateTime"] = row.resourceModDateTime
+            currentResource["resourceModTimeStamp"] = row.resourceModTimeStamp
+            currentResource["removed"] = 0
+        else:
+            # if deleting a resource save a version of the resource annotation file in dsc-pkg (non-archive) exactly the same
+            # as version prior to deletion except with updated annotation mod time and removed == 1
+            currentResource["annotationModDateTime"] = annotationModDateTime
+            currentResource["annotationModTimeStamp"] = annotationModTimeStamp
+            currentResource["removed"] = 1
+        
+        f=open(row.savePath,'w')
+        print(json.dumps(currentResource, indent=4), file=f)
+        f.close()
+
+        annotation_list.append(currentResource)
+
+    annotation_df = pd.json_normalize(annotation_list)
+
+    if save_files_items_df.shape[0] > 1:
+        myString1 = "files were"
+        myString2 = '<br>'.join(save_files_items_df["savePath"].tolist())
+    else: 
+        myString1 = "file was"
+        myString2 = save_files_items_df["savePath"][0]
+    
+    messageText = "<br>Your resource " + myString1 + " successfully written at: " + myString2 + "<br><br>Starting to add your resource(s) to the Resource Tracker now! See below for some final information about your saved resource(s) and then for updates on adding resource(s) to tracker: <br>"
+    # TODO: 
+    # for multi like file resource, give user some info about which of these resource files were loaded from file but removed in this edit, kept in this edit, or not loaded from file and added newly in this edit
+    # for single file resource that was edited to have a new path, should be the case that a new resource id is assigned so two annotation files will actually be written, one for the old resource id with removed == 1, and one for new resource id with removed == 0; give user info about this..
+    
+    if self: 
+        self.set_disabled_widget_by_name(allNames=True)
+        self.buttonSave.setEnabled(False)
+        # TODO: 
+        # also disable additional widgets that were added (e.g. bulk add file dependencies widget, add multi like files widget, apply name convention widget...)
+        # some of these are specific to resource tracker and should be added here; some of these are more general and should be added to general save_annotation..?
+        saveFormat = '<span style="color:green;">{}</span>'
+        self.userMessageBox.append(saveFormat.format(messageText))
+        self.userMessageBox.moveCursor(QtGui.QTextCursor.End)
+        QtWidgets.QApplication.processEvents() # print accumulated user status messages 
+    else:
+        print(messageText)
+
+    add_annotation_result = add_annotation(annotationDfMode=True,annotationDf=annotation_df,annotationDfSaveFilePathList=save_files_items_df["savePath"].values.tolist(),trackerFilePath=trackerFilePath,trackerIdNumberLabel=trackerIdNumberLabel,trackerType=trackerType,self=self) # add annotation data to csv tracker as new row
+    return add_annotation_result, "annotations saved successfully"
+
+
+def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,annotationFileNameExtension=".txt",checkForDescription=True,checkForName=False,schema=None,prepOnly=False,self=None):
+    
+    """
+    Arguments:
+    data -- dictionary; required if self not provided; annotation data json record; should include all schema properties and data should have all include values that should be in the updated record, including existing,unchanged values for properties where value is not being updated and updated values for properties where value is being updated (the only thing that will be updated in the new annotation file/tracker record that does not need to be updated before inputing to save/add fx is the mod datetime/timestamp which will be updated as part of save/add fx)
+    trackerDict -- dictionary; required if self not provided; output from getTrackerVars fx, which itself takes as input trackerDict from py file that defines schema and trackerDict for the tracker this annotation belongs to (i.e. if this is a term annotation, then the term tracker which has schema and trackerDict defined in schema_term_tracker.py)
+    saveFolderPath -- string; required if self not provided; full file path to folder in which annotation files and tracker are saved
+    mode -- string; required if self not provided; either "edit" or "add" to respectively 1) archive existing annotation file, update existing annotation file to input data, add updated data to tracker as new record, 2) add new annotation file with input data, add new data to tracker as record
+    schema -- object; schema against which the data should be validated; if self is provided will be taken from self.schema; if self not provided and schema not provided will be taken from trackerDict.schema; reason for this is that in some limited cases schema may be dynamically updated from the canonical version stored in trackerDict - e.g. in case of experimentBelongsTo property in data package result and resource trackers which has dynamic enums according to unique values of experimentName property provided across all experiments in experiment tracker   
+
+    prepOnly -- boolean; 
+    self -- instance of layout_general_scrollannotate_widget
+
+    """
+
+    if self:
+        ###############
+        annotation = copy.deepcopy(self.form.widget.state)
+        trackerDict = self.trackerDict
+        saveFolderPath = self.saveFolderPath
+        mode = self.mode
+        schema = self.schema
+        ###############
+    else:
+        ###############
+        annotation = copy.deepcopy(data)
+        trackerDict = trackerDict
+        saveFolderPath = saveFolderPath
+        mode = mode
+        schema = schema
+        ###############
+
+    ############### 
+    if not schema:   
+        schema = trackerDict["schema"]
+    trackerFilePath = os.path.join(saveFolderPath,trackerDict["trackerFileName"])
+    trackerTitle = trackerDict["trackerTitle"]
+    trackerType = trackerDict["trackerType"]
+    trackerDescriptionLabel = trackerDict["trackerDescriptionLabel"]
+    trackerIdLabel = trackerDict["trackerIdLabel"]
+    trackerIdNumberLabel = trackerDict["trackerIdNumberLabel"]
+    trackerNameLabel = trackerDict["trackerNameLabel"]
+    trackerIdPrefix = trackerDict["trackerIdPrefix"]
+    ###############
+    if trackerNameLabel in annotation:
+        currentName = annotation[trackerNameLabel]
+    currentId = annotation[trackerIdLabel]
+    currentIdNumber = annotation[trackerIdNumberLabel]
+    ###############
+    annotationSaveFileName = trackerDict["trackerJsonFilePrefix"] + currentId + annotationFileNameExtension
+    annotationSaveFilePath = os.path.join(saveFolderPath,annotationSaveFileName)
+    ###############
+
+    if prepOnly:
+        print("running save_annotation for " + annotation[trackerIdLabel] + " in prepOnly mode; prep complete; will return annotation if prep completes successfully...")
+    
     ######################################################################################################
     # basic checks for tracker file exists and closed
     ###################################################################################################### 
@@ -555,6 +863,10 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     else:
         pass 
 
+    if prepOnly:
+        print("ran save_annotation for " + annotation[trackerIdLabel] + " in prepOnly mode; prep complete; returning annotation...")
+        return annotation
+    
     ######################################################################################################
     # start items for edit mode only
     ###################################################################################################### 
@@ -646,12 +958,22 @@ def save_annotation(data=None,trackerDict=None,saveFolderPath=None,mode=None,ann
     add_annotation_result = add_annotation(annotationSaveFilePath=annotationSaveFilePath,trackerFilePath=trackerFilePath,trackerIdNumberLabel=trackerIdNumberLabel,trackerType=trackerType,self=self) # add annotation data to csv tracker as new row
     return add_annotation_result, "annotation saved successfully"
 
-def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,trackerType,self=None):
-    
-    # read in data from annotation json txt file
-    data = json.loads(pathlib.Path(annotationSaveFilePath).read_text())
-    # convert json to df
-    df = pd.json_normalize(data) # df is a one row dataframe
+def add_annotation(annotationSaveFilePath=None,trackerFilePath=None,trackerIdNumberLabel=None,trackerType=None,annotationDf=None,annotationDfSaveFilePathList=None,annotationDfMode=False,self=None):
+    # NOTE: if using annotationDfMode, must supply both annotationDf and annotationDfSaveFilePathList
+    # TODO: one issue with adding directly from df is that it doesn't explicitly check that the annotation file exists
+    #       - this could be good if we want to move away from annotation files (?)
+    #       - could also add a check that the annotation file exists here? that the annotation file contents are exact match of content in df? 
+    #       - ALTERNATIVE APPROACH: have a "bulk mode" where just provide list of annotation save file paths and load each from file into df and then add all at once 
+    #       - ^ this alt approach would strictly enforce that annotation file is source of truth
+    if not annotationDfMode:
+        if not annotationSaveFilePath:
+            print("annotationSaveFilePath must be provided to add_annotation")
+        # read in data from annotation json txt file
+        data = json.loads(pathlib.Path(annotationSaveFilePath).read_text())
+        # convert json to df
+        df = pd.json_normalize(data) # df is a one row dataframe
+    else:
+        df = annotationDf
                 
     # read in tracker df
     all_df = pd.read_csv(trackerFilePath)
@@ -666,8 +988,11 @@ def add_annotation(annotationSaveFilePath,trackerFilePath,trackerIdNumberLabel,t
 
     all_df.to_csv(trackerFilePath, mode='w', header=True, index=False)
 
-    messageText = "The contents of the " + trackerType + " annotation file at: <br><br>" + annotationSaveFilePath + "<br><br>was added as a new record to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath
-        
+    if not annotationDfMode:
+        messageText = "The contents of the " + trackerType + " annotation file at: <br><br>" + annotationSaveFilePath + "<br><br>was added as a new record to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath
+    else:
+        messageText = "The contents of the " + trackerType + " annotation files at: <br><br>" + "<br>".join(annotationDfSaveFilePathList) + "<br><br>were added as new records to the " + trackerType.title() + " Tracker file: <br><br>" + trackerFilePath  
+            
     if self:
         errorFormat = '<span style="color:green;">{}</span>'
         self.userMessageBox.append(errorFormat.format(messageText))

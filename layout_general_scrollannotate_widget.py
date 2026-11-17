@@ -1,6 +1,7 @@
 import sys
 import os
 
+import pandas as pd
 import json
 import copy
 
@@ -46,32 +47,23 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             print("customDynamicEnum")
             for i in self.schema.get("customDynamicEnum"):
                 prop = i["prop"]
-                print(prop)
                 fromTrackerType = i["fromTrackerType"]
-                print(fromTrackerType)
                 fromProp = i["fromProp"]
-                print(fromProp)
                 includeLatestOnly = i["includeLatestOnly"]
                 includeRemoved = i["includeRemoved"]
                 fromTrackerDict = [d for d in self.trackersToAddToTool if d["trackerType"] == fromTrackerType]
-                #print(fromTrackerDict)
                 
                 if fromTrackerDict:
-                    print(1)
                     fromTrackerDict = fromTrackerDict[0]
                     fromTrackerSchema = fromTrackerDict["schema"]
                     if fromProp in fromTrackerSchema["properties"]:
-                        print(2)
                         if fromTrackerSchema["properties"][fromProp]["type"] == "string":
-                            print(3)
                             if fromProp == fromTrackerDict["trackerNameLabel"]:
-                                print(4)
                                 valueList, valueDf = back_door_edit.get_names(trackerDict=fromTrackerDict,saveFolderPath=self.workingDataPkgDir)
                             else:
                                 valueList, valueDf = back_door_edit.get_unique_prop_vals(trackerProperty=fromProp,trackerDict=fromTrackerDict,saveFolderPath=self.workingDataPkgDir,propertyDefaultValue=[],includeLatestOnly=True,includeRemoved=False)
                 
                             if valueList:
-                                print(valueList)
                                 self.schema = dsc_pkg_utils.dynamic_add_enums_to_schema_property(propertyToUpdate=prop,schema=self.schema,enumList=valueList)
 
         self.schemaVersion = self.trackerDict["schemaVersion"] 
@@ -95,9 +87,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         # Initialize a dictionary to keep track of any dynamically created items due to customBulkAddFilePaths custom schema prop
         self.dynamic_customBulkAddFilePaths = {}
-        self.initUI()
+        self.initUI_start()
 
-    def initUI(self):
+    def initUI_start(self):
         self.scroll = QtWidgets.QScrollArea()             # Scroll Area which contains the widgets, set as the centralWidget
         self.widget = QtWidgets.QWidget()                 # Widget that contains the collection of Vertical Box
         self.vbox = QtWidgets.QVBoxLayout()               # The Vertical Box that contains the Horizontal Boxes of  labels and buttons
@@ -145,7 +137,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         
         # create save button
         self.buttonSave = QtWidgets.QPushButton(text="Save " + self.trackerType,parent=self)
-        self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
+        #self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
         
         self.buttonSave.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
@@ -192,9 +184,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
         if self.trackerNameLabel in self.formDefaultState:
             self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].on_changed.connect(lambda saveStatus: back_door_edit.check_name_unique(saveStatus=False,self=self))
-        #self.formWidgetList[self.formWidgetNameList.index(self.trackerNameLabel)].on_changed.connect(lambda saveStatus: self.check_name_unique("check"))
-        #self.formWidgetList[self.formWidgetNameList.index(self.trackerIdLabel)].on_changed.connect(self.sync_id_and_id_number)
-
+        
         ################################## Finished creating component widgets
         
 
@@ -208,80 +198,15 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         if self.schema.get("customBulkAddFilePaths"):
             print("customBulkAddFilePaths")
             for i in self.schema.get("customBulkAddFilePaths"):
-                prop = i["prop"]
-                prop_title = self.schema["properties"][prop]["title"]
-                print(prop_title)
-                #button_text = i["buttonText"]
-                #label_text = i["labelText"]
-                button_text = "Bulk add files for: " + prop_title 
-                label_text = \
-                    "To bulk add files for the " + \
-                        prop_title + \
-                            " field <b>drag and drop file paths right here</b>. If you intend to add one or just a few files for " + \
-                                prop_title + \
-                                    ", you can drag and drop them here or browse to each file (one file at a time) using the " + \
-                                        prop_title + \
-                                            " field in the form below."
+                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddFilePaths",self=self)
 
-                # Create the button, label, and drag&drop file list box dynamically
-                btn = QtWidgets.QPushButton(text=button_text,parent=self)
-                btn.setToolTip("Click this button to open a drag and drop box to bulk add files for the " + prop_title + " field.") # add tooltip to button bc by default the label and add_files_box will be hidden so this will give the user some guidance as to what 
-                lbl = QtWidgets.QLabel(text=label_text,parent=self)
+        self.initUI_extra()
 
-                # create drag and drop window for multiple file dependencies addition
-                add_files_box = ListboxWidget(parent=self)
-                add_files_box_model = add_files_box.model()
-                add_files_items = []
-                add_files_items_programmatic_update = False
+    def initUI_extra(self):
+        self.buttonSave.clicked.connect(lambda : back_door_edit.save_annotation(self=self))
+        self.initUI_end()
 
-                # Store the items in dynamic_customBulkAddFilePaths dictionary
-                self.dynamic_customBulkAddFilePaths.setdefault(prop, {})
-                self.dynamic_customBulkAddFilePaths[prop]["btn"] = btn
-                self.dynamic_customBulkAddFilePaths[prop]["lbl"] = lbl
-                
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_box"] = add_files_box
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_box_model"] = add_files_box_model
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_items"] = add_files_items
-                self.dynamic_customBulkAddFilePaths[prop]["add_files_items_programmatic_update"] = add_files_items_programmatic_update
-
-                print("property: ",prop)
-                # when button is clicked hide/show the bulk add file box and box label
-                btn.clicked.connect(
-                    lambda checked, property=prop, label=lbl, add_files_box=add_files_box: widget_utils.toggle_add_file_box_visibility(property,label,add_files_box,self)
-                )
-                
-                # set sizing and word wrap for add file box label
-                lbl.setSizePolicy(
-                    QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding
-                )
-                lbl.setWordWrap(True)
-
-                # when user adds or deletes files via the add files drop box, update the items list
-                add_files_box_model.rowsInserted.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
-                )
-                add_files_box_model.rowsRemoved.connect(
-                    lambda parent, first, last, property=prop: widget_utils.update_add_files_list_from_box(property,self)
-                )
-                
-                self.vbox.addWidget(btn)
-                self.vbox.addWidget(lbl)
-                self.vbox.addWidget(add_files_box)
-                
-                lbl.hide()
-                add_files_box.hide()
-
-                # add in update of files in add_files_box if user add/deletes using the property's form field widget
-                # instead of the drag and drop box
-                self.formWidgetList[self.formWidgetNameList.index(prop)].on_changed.connect(
-                    lambda state, property=prop: widget_utils.update_add_files_list_from_form_field(property,self)
-                )
-                # install event filter on the corresponding form field widget - event filter watches for if/when 
-                # the form field widget changes from shown to hidden or vice versa and applies this same action to the
-                # corresponding bulk add files widgets (button, label, add_files_box)
-                self.formWidgetList[self.formWidgetNameList.index(prop)].installEventFilter(self)
-        ############
-
+    def initUI_end(self):
         self.vbox.addWidget(self.form)
         
         self.widget.setLayout(self.vbox)
@@ -357,11 +282,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             name = key
             widget = value
 
-            #print(name)
-            #print(widget)
-
             toolTipContent = self.schema["properties"][name]["description"] 
-            #print("tool tip content: ",toolTipContent)
             
             widget.setToolTip(toolTipContent)
             self.toolTipContentList.append(toolTipContent)
@@ -431,7 +352,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                     labelWidget.hide()
                     widget.hide()
 
-   
     def check_tooltip(self):
         i = 0
         for key, value in self.form.widget.widgets.items():
@@ -465,14 +385,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             labelWText = self.formLabelWidgetTextList[i]
             fieldW = self.formWidgetList[i]
             fieldWName = self.formWidgetNameList[i]
-
-            #print("label widget: ")
-            #print(labelW)
-            #print(labelWType)
-            #print(labelWText)
-            #print("field widget: ")
-            #print(fieldW)
-            #print(fieldWName)
 
             if desiredToggleState == "show":
                 labelW.show()
@@ -591,15 +503,11 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             messageTextVar = ifOrElse + "MessageText"
             messageTextTypeVar = ifOrElse + "MessageTextType"
 
-            print("unit: ",unit)
-
             if (messageTextVar in unit) and (unit.get(messageTextVar)):
                 messageText = unit.get(messageTextVar)
-                print("messageText: ",messageText)
                 if userMessageBox:
                     if (messageTextTypeVar in unit) and (unit.get(messageTextTypeVar)):
                         messageTextType = unit.get(messageTextTypeVar)
-                        print("messageTextType: ",messageTextType)
                         if messageTextType == "notify":
                             saveFormat = '<span style="color:blue;">{}</span>'
                         elif messageTextType == "warn":
@@ -679,33 +587,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             for i in self.schema["customConditionalHide"]:
                 parseCustomConditionalHide(self,unit=i,userMessageBox=self.userMessageBox)
                 
-        ##########################################################
-
-        # if self.schema.get("customConditionalHide"):
-        #     for i in self.schema["customConditionalHide"]:
-        #         if i["propValueRelation"] == "equal":
-        #             if self.form.widget.state[i["propToCheck"]] == i["propValue"]:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["ifAction"]) 
-        #             else:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["elseAction"])   
-
-        #         if i["propValueRelation"] == "startsWith":
-        #             if self.form.widget.state[i["propToCheck"]].startswith(i["propValue"]):
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["ifAction"]) 
-        #             else:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["elseAction"]) 
-
-        #         if i["propValueRelation"] == "endsWith":
-        #             if self.form.widget.state[i["propToCheck"]].endswith(i["propValue"]):
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["ifAction"]) 
-        #             else:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["elseAction"])
-                        
-        #         if i["propValueRelation"] == "valueInProp":
-        #             if i["propValue"] in self.form.widget.state[i["propToCheck"]]:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["ifAction"]) 
-        #             else:
-        #                 self.toggle_widgets(keyText = i["impactedPropKeyText"], desiredToggleState = i["elseAction"])  
+        ##########################################################  
     
     def clear_form(self):
 
@@ -780,9 +662,9 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
         selected_id = self.w2.selected_row_data[selected_id_index] 
         selected_id_base_filename = self.trackerJsonFilePrefix + selected_id + ".txt" 
         selected_id_full_path_filename = os.path.join(self.workingDataPkgDir,selected_id_base_filename)
-        self.load_file(path=selected_id_full_path_filename)
+        self.load_file_start(path=selected_id_full_path_filename)
 
-    def load_file(self,path):
+    def load_file_start(self,path):
     
         ifileName = path
 
@@ -790,7 +672,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             data = json.load(stream)
 
         if self.mode == "add-based-on":
-            based_on_annotation_id = data[self.trackerIdLabel]
+            self.based_on_annotation_id = data[self.trackerIdLabel]
             #######################################
             # for add based on (not edit) mode
             # do the following
@@ -805,7 +687,7 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
             #######################################
             # for editing terms (not add based on)
             # do the following
-            #######################################
+            #######################################           
 
             ########################
             # start utility fxs
@@ -877,7 +759,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                     proceedDespiteWarn = parseCustomConditionalEditWarning(unit=unit[actionVar],userMessageBox=userMessageBox)
                     return proceedDespiteWarn
 
-
             def parseCustomConditionalEditWarning(unit,userMessageBox):
                 if unit["propValueRelation"] not in ["equal","notEqual","startsWith"]:
                     print("propValue relation can only be one of the following values for now: equal, notEqual, startsWith")
@@ -934,7 +815,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
 
                 return data
                 
-
             def subParseCustomConditionalEditDefaults(unit,ifOrElse,data):
                 actionVar = ifOrElse + "Action"
                 defaultsVar = ifOrElse + "Defaults"
@@ -953,7 +833,6 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                 else:
                     data = parseCustomConditionalEditDefaults(unit=unit[actionVar])
                     return data
-
 
             def parseCustomConditionalEditDefaults(unit,data):
                 if unit["propValueRelation"] not in ["equal","notEqual","startsWith"]:
@@ -998,26 +877,156 @@ class ScrollAnnotateWindow(QtWidgets.QMainWindow):
                     if not data:
                         self.set_disabled_widget_by_name(allNames=True)
                         return
-        
+
+        self.load_file_extra(data=data)
+
+    def load_file_extra(self,data):    
+        self.load_file_end(data=data)
+
+    def load_file_end(self,data):    
         self.form.widget.state = data
         
         if self.mode == "edit":
             self.conditional_fields_on_init() # this generalizes the customization - does it work?
             self.set_read_only_widget_by_name(name=self.trackerIdLabel)
-                
+        
         if self.mode == "add-based-on":
             dsc_pkg_utils.get_id(filePrefix=self.trackerJsonFilePrefix,folderPath=self.saveFolderPath,firstIdNum=1,fileExt=".txt",self=self)
             self.conditional_fields_on_init()
-            messageText = "<br>Your new " + self.trackerType + " has been initialized based on information you entered for " + based_on_annotation_id + "<br><br>"
+            messageText = "<br>Your new " + self.trackerType + " has been initialized based on information you entered for " + self.based_on_annotation_id + "<br><br>"
             saveFormat = '<span style="color:blue;">{}</span>'
             self.userMessageBox.append(saveFormat.format(messageText))
 
         self.loadingFormDataFromFile = False
 
-            
+    
+                    
           
+class Resource_ScrollAnnotateWindow(ScrollAnnotateWindow):
+    def __init__(
+            self, 
+            workingDataPkgDirDisplay,
+            workingDataPkgDir,
+            trackerDict,
+            trackersToAddToTool, 
+            filesCheckList, 
+            mode,
+            ):
+        super().__init__(
+            workingDataPkgDirDisplay,
+            workingDataPkgDir,
+            trackerDict,
+            trackersToAddToTool, 
+            filesCheckList, 
+            mode
+        )
+        
+
+        # populated in self.load_file_extra()
+        self.loaded_files_items_df = pd.DataFrame(columns=["path","id"]) # will be an empty df unless mode == edit
+        self.loadedMultiLikeFileResource = None
+
+
+    def initUI_extra(self):
+        # check if a schema prop has been assigned bulk add file paths status and add functionality for that prop if so
+        self.dynamic_customBulkAddMultiLikeFilePaths = {}
+        if self.schema.get("customBulkAddMultiLikeFilePaths"):
+            print("customBulkAddMultiLikeFilePaths")
+            for i in self.schema.get("customBulkAddMultiLikeFilePaths"):
+                widget_utils.multi_path_box(i=i,multi_path_box_type="customBulkAddMultiLikeFilePaths",self=self)
+
+                ############
+        self.buttonSave.clicked.connect(lambda : back_door_edit.save_resource_annotation(self=self))
+        self.initUI_end()
+
+    def load_file_extra(self,data): 
+
+        if data["associatedFileMultiLikeFiles"]: 
+            loadedMultiLikeFileResource = True
+        else:
+            loadedMultiLikeFileResource = False
+
+        if self.mode == "add-based-on":
+            if loadedMultiLikeFileResource: 
+                messageText = "<br>You selected a resource that is part of a multi-like file resource. It is currently not possible to add a new resource based upon an existing resource that is part of a multi-like file resource. Instead, start a new resource from scratch using the \"Add a new resource\" push-button or start a new resource based on an existing resource using the \"Add a new resource based on an existing resource\" push-button, then select a resource that is NOT part of a multi-like file resource upon which to base the new resource.<br><br> To proceed, close this form and return to the main DSC Data Packaging Tool window."
+                saveFormat = '<span style="color:red;">{}</span>'
+                self.userMessageBox.append(saveFormat.format(messageText))
+                widget_utils.disable_form(self=self)
+                return
+
+        if self.mode == "edit":    
+            if loadedMultiLikeFileResource: 
+                loaded_files_items = data["associatedFileMultiLikeFiles"]
+                loaded_files_items = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items)
+                loaded_files_items_ids = data["associatedFileMultiLikeFilesIds"]
+                loaded_files_items_ids = dsc_pkg_utils.convertStringifiedArrayOfStringsToList(myStringifiedArrayOfStrings=loaded_files_items_ids)
+
+                first_of_multi_path = loaded_files_items[0]
+                first_of_multi_id = loaded_files_items_ids[0]
+                
+                if data["path"] != first_of_multi_path: 
+                    messageText = "<br>You selected a resource that is part of a multi-like file resource, but you did NOT select the resource that is the first in the series for this multi-like file resource. In order to edit a resource that is part of a multi-like file resource you MUST select the first resource in the series for the multi-like file resource. <br><br>"
+                    messageText = messageText + "The id for the first resource in this multi-like file resource is: " + first_of_multi_id + ". If you intended to edit this multi-like file resource, first close this form, then go back and select " + first_of_multi_id + " for editing.<br><br>"
+                    saveFormat = '<span style="color:red;">{}</span>'
+                    self.userMessageBox.append(saveFormat.format(messageText))
+                    widget_utils.disable_form(self=self)
+                    return
+
+                # warn user they are editing a multi-like file resource and all resources in the set will be edited if action is continued
+                widget_utils.warnMultiLikeResource(self=self)
+                                
+                self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_box"].addItems(data["associatedFileMultiLikeFiles"])
+                widget_utils.toggle_add_file_box_visibility(
+                    self=self,
+                    property="path",
+                    label= self.dynamic_customBulkAddMultiLikeFilePaths["path"]["lbl"],
+                    add_files_box=self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_box"]
+                    )
+            else: 
+                loaded_files_items = [data["path"]]
+                loaded_files_items_ids = [data["resourceId"]]
+
+            loaded_files_items_dict = {
+                "path": loaded_files_items,
+                "id": loaded_files_items_ids
+            }
+            loaded_files_items_df = pd.DataFrame(loaded_files_items_dict)
+        
+        self.loaded_files_items_df = loaded_files_items_df
+        self.loadedMultiLikeFileResource = loadedMultiLikeFileResource
+        
+        self.load_file_end(data=data)
 
         
+
+class_registry = {
+    "general": ScrollAnnotateWindow,
+    "resource": Resource_ScrollAnnotateWindow,
+}
+
+def get_scrollannotate(
+        workingDataPkgDirDisplay,
+        workingDataPkgDir,
+        trackerDict,
+        trackersToAddToTool,
+        mode,
+        filesCheckList=[],
+        scrollannotate_type="general"
+        ):
+    # look up the class by the input parameter
+    cls = class_registry.get(scrollannotate_type)
+    if not cls:
+        raise ValueError(f"Unknown scrollannotate type: {scrollannotate_type}")
+    
+    # instantiate and return the class
+    return cls(
+        workingDataPkgDirDisplay=workingDataPkgDirDisplay,
+        workingDataPkgDir=workingDataPkgDir,
+        trackerDict=trackerDict,
+        filesCheckList=filesCheckList,
+        trackersToAddToTool=trackersToAddToTool,
+        mode=mode
+    )
 
 if __name__ == "__main__":
     
