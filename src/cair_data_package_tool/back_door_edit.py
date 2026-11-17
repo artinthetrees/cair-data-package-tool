@@ -482,7 +482,6 @@ def save_resource_annotation(
         currentMultiLikeFileResource = False
 
     if currentMultiLikeFileResource:
-        print("dynamic_customBulkAddMultiLikeFilePaths: ",self.dynamic_customBulkAddMultiLikeFilePaths)
         current_files_items = self.dynamic_customBulkAddMultiLikeFilePaths["path"]["add_files_items"]
         if annotation["descriptionFileNameConvention"]:
             widget_utils.apply_name_convention(property="path",self=self)
@@ -498,8 +497,6 @@ def save_resource_annotation(
             # get the next available id num then just add 1 for each additional id needed - these will be available 
             next_available_id_num = dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath)
             current_files_items_id_numbers = list(range(next_available_id_num, next_available_id_num + len(current_files_items)))
-            print("current_files_items_id_numbers: ",current_files_items_id_numbers)
-            #current_files_items_id_numbers = [dsc_pkg_utils.get_id(filePrefix=trackerDict["trackerJsonFilePrefix"],folderPath=saveFolderPath) for i in current_files_items]
             current_files_items_ids = [trackerIdPrefix + str(id_num) for id_num in current_files_items_id_numbers]
     else:
         current_files_items = [annotation["path"]]
@@ -518,7 +515,7 @@ def save_resource_annotation(
         "idNum": current_files_items_id_numbers,
         "fileDescription": current_files_items_descriptions
     }
-    current_files_items_df = pd.DataFrame(current_files_items_dict)     
+    current_files_items_df = pd.DataFrame(current_files_items_dict)    
 
     ##########
     if mode == "edit":
@@ -540,6 +537,7 @@ def save_resource_annotation(
         loaded_files_items_df["loadedFromFile"] = 1
         loaded_files_items_df["deleted"] = [ 1 if p not in current_files_items else 0 for p in loaded_files_items]
         loaded_files_items_df["added"] = 0
+        loaded_files_items_df["fileDescription"] = ""
             
         added_files_items = [p for p in current_files_items if p not in loaded_files_items_df["path"].values]
 
@@ -636,13 +634,13 @@ def save_resource_annotation(
     #
     annotation_list = []       
     for row in save_files_items_df.itertuples():
+        if row.loadedFromFile == 1 and row.deleted == 1:
+            with open(row.savePath, 'r',encoding='utf-8') as stream:
+                currentResource = json.load(stream)
+        else: 
+            currentResource = copy.deepcopy(annotation)
+
         if row.loadedFromFile == 1:
-            if row.deleted == 1:
-                with open(row.SavePath, 'r',encoding='utf-8') as stream:
-                    currentResource = json.load(stream)
-            else:
-                currentResource = copy.deepcopy(annotation)
-            
             os.rename(row.savePath,row.archivePath)
             messageText = "<br>In preparation for saving your edited resource annotation file, your original resource annotation file has been archived at:<br>" + row.archivePath + "<br><br>"
             saveFormat = '<span style="color:blue;">{}</span>'
